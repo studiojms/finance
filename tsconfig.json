@@ -10,6 +10,10 @@
       "DOM.Iterable"
     ],
     "skipLibCheck": true,
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom"
+    ],
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
