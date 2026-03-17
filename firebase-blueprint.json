@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "Account": {
+      "title": "Account",
+      "description": "A financial account (bank, cash, credit card).",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the account" },
+        "type": { "type": "string", "enum": ["checking", "savings", "credit_card", "cash", "investment"], "description": "Type of account" },
+        "balance": { "type": "number", "description": "Current balance" },
+        "color": { "type": "string", "description": "Hex color code for UI" },
+        "userId": { "type": "string", "description": "Owner UID" }
+      },
+      "required": ["name", "type", "balance", "userId"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "An income or expense entry.",
+      "type": "object",
+      "properties": {
+        "description": { "type": "string", "description": "Description of the transaction" },
+        "amount": { "type": "number", "description": "Value of the transaction" },
+        "date": { "type": "string", "format": "date-time", "description": "Transaction date" },
+        "categoryId": { "type": "string", "description": "ID of the category" },
+        "accountId": { "type": "string", "description": "ID of the account" },
+        "type": { "type": "string", "enum": ["income", "expense", "transfer"], "description": "Type of transaction" },
+        "isConsolidated": { "type": "boolean", "description": "Whether the transaction is cleared/paid" },
+        "userId": { "type": "string", "description": "Owner UID" },
+        "installmentId": { "type": "string", "description": "Group ID for installments" },
+        "installmentNumber": { "type": "integer", "description": "Current installment number" },
+        "totalInstallments": { "type": "integer", "description": "Total number of installments" },
+        "toAccountId": { "type": "string", "description": "Target account ID for transfers" }
+      },
+      "required": ["description", "amount", "date", "accountId", "type", "userId"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Transaction category.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Category name" },
+        "icon": { "type": "string", "description": "Lucide icon name" },
+        "color": { "type": "string", "description": "Hex color code" },
+        "type": { "type": "string", "enum": ["income", "expense", "both"] },
+        "userId": { "type": "string", "description": "Owner UID (null for defaults)" }
+      },
+      "required": ["name", "icon", "color", "type"]
+    }
+  },
+  "firestore": {
+    "/accounts/{accountId}": { "schema": "Account", "description": "User accounts" },
+    "/transactions/{transactionId}": { "schema": "Transaction", "description": "User transactions" },
+    "/categories/{categoryId}": { "schema": "Category", "description": "Transaction categories" }
+  }
+}

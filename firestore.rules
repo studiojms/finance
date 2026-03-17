@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: accounts
+    // Fields: name (string), type (string), balance (number), color (string), userId (string)
+    //
+    // Collection: transactions
+    // Fields: description (string), amount (number), date (string), categoryId (string), 
+    //         accountId (string), type (string), isConsolidated (bool), userId (string),
+    //         installmentId (string?), installmentNumber (int?), totalInstallments (int?),
+    //         toAccountId (string?)
+    //
+    // Collection: categories
+    // Fields: name (string), icon (string), color (string), type (string), userId (string?)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    function isValidAccount(data) {
+      return data.keys().hasAll(['name', 'type', 'balance', 'userId']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.type in ['checking', 'savings', 'credit_card', 'cash', 'investment'] &&
+             data.balance is number &&
+             data.userId == request.auth.uid;
+    }
+    
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['description', 'amount', 'date', 'accountId', 'type', 'userId']) &&
+             data.description is string && data.description.size() > 0 && data.description.size() < 200 &&
+             data.amount is number &&
+             data.date is string && // ISO format check could be more strict but rules are limited
+             data.accountId is string &&
+             data.type in ['income', 'expense', 'transfer'] &&
+             data.userId == request.auth.uid;
+    }
+    
+    function isValidCategory(data) {
+      return data.keys().hasAll(['name', 'icon', 'color', 'type']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 50 &&
+             data.icon is string &&
+             data.color is string &&
+             data.type in ['income', 'expense', 'both'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /accounts/{accountId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidAccount(request.resource.data);
+      allow update: if isDocOwner() && isValidAccount(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+    
+    match /transactions/{transactionId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidTransaction(request.resource.data);
+      allow update: if isDocOwner() && isValidTransaction(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+    
+    match /categories/{categoryId} {
+      // Allow reading default categories (userId == null) or user-specific ones
+      allow read: if isAuthenticated() && (resource.data.userId == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidCategory(request.resource.data) && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidCategory(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+  }
+}
