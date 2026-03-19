@@ -9,8 +9,7 @@ export const handleFirestoreError = (error: any, operation: string, path: string
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
       emailVerified: auth.currentUser?.emailVerified,
-    }
+    },
   };
   console.error('Firestore Error:', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
 };
