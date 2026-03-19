@@ -1,8 +1,17 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { APP_CONFIG } from './config';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+let supabaseClient: SupabaseClient | null = null;
 
-export const supabase = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+if (APP_CONFIG.backend === 'supabase' && APP_CONFIG.supabase.url && APP_CONFIG.supabase.anonKey) {
+  console.log('Initializing Supabase client');
+  supabaseClient = createClient(APP_CONFIG.supabase.url, APP_CONFIG.supabase.anonKey);
+} else {
+  console.log('Supabase client not initialized', {
+    backend: APP_CONFIG.backend,
+    hasUrl: !!APP_CONFIG.supabase.url,
+    hasKey: !!APP_CONFIG.supabase.anonKey,
+  });
+}
+
+export const supabase = supabaseClient;
