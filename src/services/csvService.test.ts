@@ -2,6 +2,20 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { CSVService } from './csvService';
 import { Transaction, Category, Account } from '../types';
 
+// Helper to convert Blob to text in test environment
+async function blobToText(blob: Blob): Promise<string> {
+  if (blob.text) {
+    return blob.text();
+  }
+  // Fallback for environments where Blob.text() is not available
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsText(blob);
+  });
+}
+
 describe('CSVService', () => {
   const mockCategories: Category[] = [
     {
@@ -69,29 +83,23 @@ describe('CSVService', () => {
       expect(blob.size).toBeGreaterThan(0);
     });
 
-    it('includes all transactions in CSV', () => {
+    it('includes all transactions in CSV', async () => {
       const blob = CSVService.exportToCSV(mockTransactions, mockCategories, mockAccounts);
-
-      blob.text().then((text) => {
-        const lines = text.split('\n');
-        expect(lines.length).toBe(3); // header + 2 transactions
-      });
+      const text = await blobToText(blob);
+      const lines = text.split('\n');
+      expect(lines.length).toBe(3); // header + 2 transactions
     });
 
-    it('formats expense amounts as negative', () => {
+    it('formats expense amounts as negative', async () => {
       const blob = CSVService.exportToCSV(mockTransactions, mockCategories, mockAccounts);
-
-      blob.text().then((text) => {
-        expect(text).toContain('-150.50');
-      });
+      const text = await blobToText(blob);
+      expect(text).toContain('-150.50');
     });
 
-    it('formats income amounts as positive', () => {
+    it('formats income amounts as positive', async () => {
       const blob = CSVService.exportToCSV(mockTransactions, mockCategories, mockAccounts);
-
-      blob.text().then((text) => {
-        expect(text).toContain('5000.00');
-      });
+      const text = await blobToText(blob);
+      expect(text).toContain('5000.00');
     });
   });
 
