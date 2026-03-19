@@ -1,0 +1,5 @@
+/**
+ * Ping file for connection checking
+ * This file should be placed in the public folder
+ */
+OK
