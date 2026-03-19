@@ -1,6 +1,6 @@
 # Finanças Pro 💰
 
-A modern, comprehensive personal finance management application built with React, TypeScript, Firebase, and Supabase. Track your accounts, manage transactions, visualize spending patterns, and maintain full control of your financial life.
+A modern, comprehensive personal finance management application built with React, TypeScript, with support for Firebase and Supabase. Track your accounts, manage transactions, visualize spending patterns, and maintain full control of your financial life.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)
@@ -16,7 +16,9 @@ A modern, comprehensive personal finance management application built with React
 - **Recurring Transactions**: Set up recurring income/expenses with various frequencies
 - **Installment Payments**: Split purchases into installments with automatic tracking
 - **Data Visualization**: Interactive charts to understand spending patterns
-- **Firebase Authentication**: Secure login with Google or email/password
+- **Multiple Backends**: Choose between Firebase or Supabase for authentication and database
+- **Local Database**: PostgreSQL for local development with Docker
+- **Offline Mode**: Full offline support with automatic data synchronization
 - **Responsive Design**: Beautiful, modern UI that works on all devices
 - **PWA Support**: Install as a Progressive Web App for offline access
 
@@ -24,12 +26,16 @@ A modern, comprehensive personal finance management application built with React
 
 - **Frontend**: React 19, TypeScript, Vite
 - **Styling**: Tailwind CSS 4, Motion (Framer Motion)
-- **Backend**: Firebase (Firestore, Authentication), Supabase
+- **Backend Options**:
+  - Firebase (Firestore, Authentication)
+  - Supabase (PostgreSQL, Authentication)
+  - Local PostgreSQL (Docker)
 - **Charts**: Recharts
 - **Icons**: Lucide React
 - **Date Handling**: date-fns
 - **AI Integration**: Google Gemini API
 - **Testing**: Vitest, React Testing Library
+- **Containerization**: Docker, Docker Compose
 
 ## Prerequisites 📋
 
@@ -37,7 +43,23 @@ Before you begin, ensure you have the following installed:
 
 - **Node.js** (v18 or higher)
 - **npm** or **yarn**
-- **Docker** (optional, for containerized deployment)
+- **Docker & Docker Compose** (for local database and containerized deployment)
+
+## Architecture 🏗️
+
+This application supports two different backends:
+
+### Firebase
+
+- Authentication: Firebase Auth (Google OAuth, Email/Password)
+- Database: Firestore (NoSQL)
+- Ideal for: Quick deployment, automatic scalability
+
+### Supabase
+
+- Authentication: Supabase Auth (OAuth, Email/Password)
+- Database: PostgreSQL (SQL)
+- Ideal for: Full control, complex queries, local development
 
 ## Local Environment Setup 🚀
 
@@ -51,53 +73,316 @@ cd finance-pro
 ### 2. Install Dependencies
 
 ```bash
-npm install
-# or
 yarn install
 ```
 
 ### 3. Configure Environment Variables
 
-Create a `.env.local` file in the root directory with the following variables:
+Copy the example file and configure:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Edit `.env.local` and choose your backend:
+
+#### Option A: Firebase (Default)
 
 ```env
-# Firebase Configuration
+# Choose the backend
+VITE_BACKEND=firebase
+
+# Configure your Firebase credentials
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
 VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
+```
 
-# Supabase Configuration
-VITE_SUPABASE_URL=your_supabase_url
+**Firebase Setup:**
+
+1. Create a project at [Firebase Console](https://console.firebase.google.com/)
+2. Enable **Authentication** (Email/Password and Google)
+3. Create a **Firestore Database**
+4. Copy the configuration to `.env.local`
+
+#### Option B: Supabase
+
+```env
+# Choose the backend
+VITE_BACKEND=supabase
+
+# For Supabase Cloud
+VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# Gemini API (Optional - for AI features)
-GEMINI_API_KEY=your_gemini_api_key
+# OR for Local Supabase (Docker)
+VITE_SUPABASE_URL=http://localhost:8000
+VITE_SUPABASE_ANON_KEY=your_local_anon_key
 ```
 
-### 4. Firebase Setup
+**Supabase Cloud Setup:**
 
-1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable **Authentication** with Email/Password and Google providers
-3. Create a **Firestore Database** in production mode
-4. Add your Firebase configuration to `.env.local`
-5. Update Firestore security rules from `firestore.rules`
+1. Create a project at [Supabase](https://supabase.com/)
+2. Copy the project URL and anon key
+3. Run the schema migrations (SQL in `docker/init.sql`)
 
-### 5. Supabase Setup (Optional)
+**Local Supabase Setup:**
 
-1. Create a new project at [Supabase](https://supabase.com/)
-2. Get your project URL and anon key
-3. Add them to `.env.local`
+1. Uncomment Supabase services in `docker-compose.yml`
+2. Configure `JWT_SECRET` in `.env.local`
+3. Run `docker-compose up -d`
 
-### 6. Run the Development Server
+### 4. Run with Docker (Recommended) 🐳
+
+Docker Compose already includes a local PostgreSQL database:
 
 ```bash
-npm run dev
-# or
+# Start all services (app + database)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Stop and remove volumes (cleans the database)
+docker-compose down -v
+```
+
+The application will be available at `http://localhost:3000`
+
+PostgreSQL will be at `localhost:5432` with:
+
+- Database: `finance_pro`
+- User: `postgres`
+- Password: `postgres`
+
+### 5. Run Locally (Development)
+
+```bash
+# Start only the database
+docker-compose up -d postgres
+
+# In another terminal, run the application
 yarn dev
 ```
+
+The application will be available at `http://localhost:3000`
+
+## Available Scripts 📜
+
+```bash
+# Development
+yarn dev              # Start development server
+yarn build            # Build for production
+yarn preview          # Preview production build
+
+# Tests
+yarn test             # Run tests
+yarn test:ui          # Visual test interface
+yarn test:coverage    # Tests with coverage
+
+# Code quality
+yarn lint             # Type checking with TypeScript
+
+# Docker
+docker-compose up -d                  # Start all services
+docker-compose up -d postgres         # Database only
+docker-compose logs -f finance-pro    # Application logs
+docker-compose exec postgres psql -U postgres -d finance_pro  # Access PostgreSQL
+```
+
+## Database Schema 🗄️
+
+The PostgreSQL schema is defined in [`docker/init.sql`](docker/init.sql) and includes:
+
+- **users**: Application users
+- **accounts**: Financial accounts (checking, savings, etc.)
+- **transactions**: Financial transactions
+- **budgets**: Budgets by category
+
+The schema is automatically created when you start PostgreSQL via Docker.
+
+## Project Structure 📁
+
+```
+finance-pro/
+├── docker/
+│   └── init.sql              # PostgreSQL schema
+├── src/
+│   ├── components/           # React components
+│   ├── services/             # Services (auth, database)
+│   │   ├── authService.ts    # Authentication abstraction
+│   │   ├── databaseService.ts # Database abstraction
+│   │   └── errorService.ts
+│   ├── config.ts             # Backend configuration
+│   ├── firebase.ts           # Firebase setup
+│   ├── supabase.ts           # Supabase setup
+│   └── App.tsx               # Main component
+├── docker-compose.yml        # Docker orchestration
+├── Dockerfile                # Application build
+└── .env.local.example        # Environment variables example
+```
+
+## Backend Services 🔧
+
+### AuthService
+
+Unified abstraction for authentication:
+
+```typescript
+import { AuthService } from './services/authService';
+
+// Login
+await AuthService.signInWithEmail(email, password);
+await AuthService.signInWithGoogle();
+
+// Register
+await AuthService.signUpWithEmail(email, password, displayName);
+
+// Logout
+await AuthService.signOut();
+
+// Listen to auth changes
+AuthService.onAuthStateChanged((user) => {
+  console.log('User:', user);
+});
+```
+
+### DatabaseService
+
+Unified abstraction for database:
+
+```typescript
+import { DatabaseService } from './services/databaseService';
+
+// Add document
+await DatabaseService.addDocument('transactions', { ...data });
+
+// Update document
+await DatabaseService.updateDocument('transactions', id, { ...data });
+
+// Delete document
+await DatabaseService.deleteDocument('transactions', id);
+
+// Subscribe to collection in real-time
+const unsubscribe = DatabaseService.subscribeToCollection('transactions', userId, [orderBy('date', 'desc')], (data) =>
+  console.log(data)
+);
+```
+
+## Deployment 🚢
+
+### Docker Production
+
+```bash
+# Build image
+docker build -t finance-pro .
+
+# Run in production
+docker-compose -f docker-compose.yml up -d
+```
+
+### Production Environment Variables
+
+Configure the same variables from `.env.local` in your production environment (Vercel, Railway, etc.)
+
+## Security 🔒
+
+- Never commit the `.env.local` file
+- Use environment variables for sensitive data
+- Configure Firestore/Supabase security rules correctly
+- Use HTTPS in production
+
+## Troubleshooting 🔍
+
+### Database connection error
+
+```bash
+# Check if PostgreSQL is running
+docker-compose ps
+
+# Restart database
+docker-compose restart postgres
+
+# Veja os logs
+docker-compose logs postgres
+```
+
+### Authentication error
+
+- Check if credentials in `.env.local` are correct
+- Confirm that `VITE_BACKEND` is configured correctly (`firebase` or `supabase`)
+- Check browser logs for more details
+
+## Offline Mode 🔄
+
+Finance Pro works seamlessly offline with automatic data synchronization:
+
+- **Full offline support** - All CRUD operations work without internet
+- **Automatic caching** - Data is cached locally using IndexedDB
+- **Smart sync** - Automatic synchronization when connection is restored
+- **Optimistic UI** - Instant feedback for all user actions
+- **Conflict resolution** - Last-write-wins strategy for simplicity
+
+### Quick Start
+
+The offline functionality works automatically. Just use the app normally:
+
+```typescript
+// Add the OfflineIndicator component to your App
+import { OfflineIndicator } from './components/OfflineIndicator';
+
+function App() {
+  return (
+    <>
+      {/* Your app components */}
+      <OfflineIndicator />
+    </>
+  );
+}
+```
+
+### Monitor Offline State
+
+```typescript
+import { useOffline } from './hooks/useOffline';
+
+function MyComponent() {
+  const { isOnline, isSyncing, pendingOperations, manualSync } = useOffline();
+
+  return (
+    <div>
+      <p>Status: {isOnline ? 'Online' : 'Offline'}</p>
+      {pendingOperations > 0 && (
+        <button onClick={manualSync}>
+          Sync {pendingOperations} changes
+        </button>
+      )}
+    </div>
+  );
+}
+```
+
+**📖 Full documentation:** See [OFFLINE.md](OFFLINE.md) for detailed information about:
+
+- Architecture and data flow
+- API reference
+- Testing offline mode
+- Troubleshooting
+- Best practices
+
+## Contributing 🤝
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License 📄
+
+This project is licensed under the MIT License.
 
 The application will be available at `http://localhost:3000`
 

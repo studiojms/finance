@@ -11,7 +11,16 @@
     "lint": "tsc --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
+    "docker:dev:stop": "docker-compose -f docker-compose.dev.yml down",
+    "docker:prod": "docker-compose up -d",
+    "docker:prod:stop": "docker-compose down",
+    "docker:logs": "docker-compose logs -f finance-pro",
+    "docker:build": "docker-compose build --no-cache",
+    "db:connect": "docker-compose exec postgres psql -U postgres -d finance_pro",
+    "db:backup": "docker-compose exec postgres pg_dump -U postgres finance_pro > backup_$(date +%Y%m%d_%H%M%S).sql",
+    "db:reset": "docker-compose down -v && docker-compose up -d postgres"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
