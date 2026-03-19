@@ -5,8 +5,8 @@
  */
 
 import React from 'react';
-import { OfflineIndicator } from './components/OfflineIndicator';
-import { useOffline } from './hooks/useOffline';
+import { OfflineIndicator } from '../components/OfflineIndicator';
+import { useOffline } from '../hooks/useOffline';
 
 function App() {
   // Optional: Access offline state for custom UI
@@ -15,7 +15,7 @@ function App() {
   return (
     <div className="app">
       {/* Your existing app components */}
-      <YourMainContent />
+      <div>{/* Your main content here */}</div>
 
       {/* Add the offline indicator - shows when offline or syncing */}
       <OfflineIndicator />

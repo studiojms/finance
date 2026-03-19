@@ -31,6 +31,7 @@ describe('CSVService', () => {
       initialBalance: 0,
       initialBalanceDate: '2024-01-01',
       color: '#3b82f6',
+      icon: 'Banknote',
       userId: 'user1',
     },
   ];

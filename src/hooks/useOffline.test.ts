@@ -63,7 +63,7 @@ describe('useOffline', () => {
 
       expect(result.current.isOnline).toBe(true);
       expect(result.current.isSyncing).toBe(false);
-      expect(result.current.pendingCount).toBe(0);
+      expect(result.current.pendingOperations).toBe(0);
       expect(result.current.syncProgress).toBe(0);
     });
 
@@ -129,7 +129,7 @@ describe('useOffline', () => {
       }
 
       await waitFor(() => {
-        expect(result.current.pendingCount).toBe(5);
+        expect(result.current.pendingOperations).toBe(5);
         expect(result.current.isSyncing).toBe(false);
       });
     });

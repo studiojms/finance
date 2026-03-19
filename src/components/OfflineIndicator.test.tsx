@@ -16,9 +16,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: false,
-        pendingCount: 0,
+        pendingOperations: 0,
         syncProgress: 0,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       const { container } = render(<OfflineIndicator />);
@@ -29,9 +30,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: true,
-        pendingCount: 3,
+        pendingOperations: 3,
         syncProgress: 50,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -44,9 +46,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: false,
-        pendingCount: 5,
+        pendingOperations: 5,
         syncProgress: 0,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -60,9 +63,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: false,
         isSyncing: false,
-        pendingCount: 0,
+        pendingOperations: 0,
         syncProgress: 0,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -74,9 +78,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: false,
         isSyncing: false,
-        pendingCount: 7,
+        pendingOperations: 7,
         syncProgress: 0,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -89,9 +94,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: false,
         isSyncing: false,
-        pendingCount: 3,
+        pendingOperations: 3,
         syncProgress: 0,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -105,9 +111,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: true,
-        pendingCount: 10,
+        pendingOperations: 10,
         syncProgress: 75,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -119,9 +126,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: true,
-        pendingCount: 4,
+        pendingOperations: 4,
         syncProgress: 25,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -133,9 +141,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: true,
-        pendingCount: 8,
+        pendingOperations: 8,
         syncProgress: 50,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -149,9 +158,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: false,
-        pendingCount: 5,
+        pendingOperations: 5,
         syncProgress: 0,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -165,9 +175,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: false,
-        pendingCount: 5,
+        pendingOperations: 5,
         syncProgress: 0,
         manualSync,
+        lastSyncTime: null,
       });
 
       const user = userEvent.setup();
@@ -183,9 +194,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: true,
-        pendingCount: 5,
+        pendingOperations: 5,
         syncProgress: 50,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -198,9 +210,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: false,
         isSyncing: false,
-        pendingCount: 5,
+        pendingOperations: 5,
         syncProgress: 0,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       render(<OfflineIndicator />);
@@ -214,9 +227,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: false,
         isSyncing: false,
-        pendingCount: 0,
+        pendingOperations: 0,
         syncProgress: 0,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       const { container } = render(<OfflineIndicator />);
@@ -229,9 +243,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: true,
-        pendingCount: 5,
+        pendingOperations: 5,
         syncProgress: 50,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       const { container } = render(<OfflineIndicator />);
@@ -244,9 +259,10 @@ describe('OfflineIndicator', () => {
       vi.mocked(useOffline).mockReturnValue({
         isOnline: true,
         isSyncing: false,
-        pendingCount: 5,
+        pendingOperations: 5,
         syncProgress: 0,
         manualSync: vi.fn(),
+        lastSyncTime: null,
       });
 
       const { container } = render(<OfflineIndicator />);

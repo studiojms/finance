@@ -213,7 +213,7 @@ export function TransactionModal({
             const newDate = getNextDate(new Date(date), frequency, indexDiff);
 
             // Add installment suffix to description if we have totalInstallments
-            const descriptionWithSuffix = dData.totalInstallments 
+            const descriptionWithSuffix = dData.totalInstallments
               ? `${description} (${dData.installmentNumber}/${dData.totalInstallments})`
               : description;
 
