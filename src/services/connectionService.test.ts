@@ -17,10 +17,19 @@ describe('ConnectionService', () => {
     });
 
     // Mock window
+    const eventListeners: { [key: string]: Function[] } = {};
     Object.defineProperty(global, 'window', {
       value: {
-        addEventListener: vi.fn(),
+        addEventListener: vi.fn((event: string, handler: Function) => {
+          if (!eventListeners[event]) eventListeners[event] = [];
+          eventListeners[event].push(handler);
+        }),
         removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn((event: Event) => {
+          const handlers = eventListeners[event.type] || [];
+          handlers.forEach((handler) => handler(event));
+          return true;
+        }),
       },
       writable: true,
       configurable: true,
@@ -131,10 +140,7 @@ describe('ConnectionService', () => {
       ConnectionService.init();
 
       // Fast-forward time to trigger ping check
-      vi.advanceTimersByTime(30000);
-
-      // Allow promises to resolve
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(30000);
 
       // The service should handle the failed fetch
       expect(fetch).toHaveBeenCalled();

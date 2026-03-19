@@ -29,6 +29,7 @@ export function useOffline() {
     LocalStorageService.init().catch(console.error);
     ConnectionService.init();
     SyncService.init();
+    SyncService.setAutoSync(true);
 
     // Listen to connection changes
     const unsubscribeConnection = ConnectionService.addListener((isOnline) => {
@@ -69,7 +70,11 @@ export function useOffline() {
 
   const manualSync = async () => {
     if (state.isOnline && !state.isSyncing) {
-      await SyncService.syncPendingOperations();
+      try {
+        await SyncService.syncPendingOperations();
+      } catch (error) {
+        console.error('Manual sync failed:', error);
+      }
     }
   };
 

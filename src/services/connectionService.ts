@@ -11,6 +11,9 @@ export class ConnectionService {
   static init(): void {
     if (typeof window === 'undefined') return;
 
+    // Update state from navigator on init
+    this.isOnlineState = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
     window.addEventListener('online', () => {
       this.isOnlineState = true;
       this.notifyListeners();

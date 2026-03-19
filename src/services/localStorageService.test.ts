@@ -5,6 +5,7 @@ import { LocalStorageService } from './localStorageService';
 const mockIndexedDB = () => {
   const databases = new Map<string, any>();
   const stores = new Map<string, Map<string, any>>();
+  const storeKeyPaths = new Map<string, string>();
 
   return {
     open: vi.fn((name: string, version: number) => {
@@ -22,6 +23,7 @@ const mockIndexedDB = () => {
             createObjectStore: vi.fn((storeName: string, options: any) => {
               const store = new Map<string, any>();
               stores.set(storeName, store);
+              storeKeyPaths.set(storeName, options?.keyPath || 'id');
               return {
                 createIndex: vi.fn(),
               };
@@ -30,35 +32,62 @@ const mockIndexedDB = () => {
               return {
                 objectStore: vi.fn((storeName: string) => {
                   const storeData = stores.get(storeName) || new Map();
+                  stores.set(storeName, storeData);
+                  const keyPath = storeKeyPaths.get(storeName) || 'id';
                   return {
-                    put: vi.fn((data: any) => ({
-                      onsuccess: null,
-                      onerror: null,
-                    })),
-                    add: vi.fn((data: any) => ({
-                      onsuccess: null,
-                      onerror: null,
-                    })),
-                    get: vi.fn((key: string) => ({
-                      onsuccess: null,
-                      onerror: null,
-                      result: storeData.get(key),
-                    })),
-                    getAll: vi.fn(() => ({
-                      onsuccess: null,
-                      onerror: null,
-                      result: Array.from(storeData.values()),
-                    })),
-                    delete: vi.fn((key: string) => ({
-                      onsuccess: null,
-                      onerror: null,
-                    })),
+                    put: vi.fn((data: any) => {
+                      const req: any = { onsuccess: null, onerror: null, result: null };
+                      setTimeout(() => {
+                        const key = data[keyPath];
+                        storeData.set(key, data);
+                        req.result = key;
+                        if (req.onsuccess) req.onsuccess();
+                      }, 0);
+                      return req;
+                    }),
+                    add: vi.fn((data: any) => {
+                      const req: any = { onsuccess: null, onerror: null, result: null };
+                      setTimeout(() => {
+                        const key = data[keyPath];
+                        storeData.set(key, data);
+                        req.result = key;
+                        if (req.onsuccess) req.onsuccess();
+                      }, 0);
+                      return req;
+                    }),
+                    get: vi.fn((key: string) => {
+                      const req: any = { onsuccess: null, onerror: null, result: null };
+                      setTimeout(() => {
+                        req.result = storeData.get(key);
+                        if (req.onsuccess) req.onsuccess();
+                      }, 0);
+                      return req;
+                    }),
+                    getAll: vi.fn(() => {
+                      const req: any = { onsuccess: null, onerror: null, result: null };
+                      setTimeout(() => {
+                        req.result = Array.from(storeData.values());
+                        if (req.onsuccess) req.onsuccess();
+                      }, 0);
+                      return req;
+                    }),
+                    delete: vi.fn((key: string) => {
+                      const req: any = { onsuccess: null, onerror: null, result: null };
+                      setTimeout(() => {
+                        storeData.delete(key);
+                        if (req.onsuccess) req.onsuccess();
+                      }, 0);
+                      return req;
+                    }),
                     index: vi.fn((indexName: string) => ({
-                      getAll: vi.fn(() => ({
-                        onsuccess: null,
-                        onerror: null,
-                        result: Array.from(storeData.values()),
-                      })),
+                      getAll: vi.fn((value?: any) => {
+                        const req: any = { onsuccess: null, onerror: null, result: null };
+                        setTimeout(() => {
+                          req.result = Array.from(storeData.values());
+                          if (req.onsuccess) req.onsuccess();
+                        }, 0);
+                        return req;
+                      }),
                     })),
                   };
                 }),
