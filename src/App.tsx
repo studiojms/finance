@@ -48,7 +48,7 @@ import {
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { formatCurrency, cn } from './utils';
+import { formatCurrency, cn, getPieData } from './utils';
 import { Account, Transaction, Category, TransactionType } from './types';
 import { handleFirestoreError } from './services/errorService';
 import { DEFAULT_CATEGORIES } from './constants';
@@ -57,15 +57,17 @@ import { TransactionModal } from './components/modals/TransactionModal';
 import { TransactionItem } from './components/TransactionItem';
 import { NavButton } from './components/NavButton';
 import { ConfirmationModal } from './components/modals/ConfirmationModal';
+import { InstallmentDeleteModal } from './components/modals/InstallmentDeleteModal';
 import { QuickActionPopup } from './components/QuickActionPopup';
 import { UserSettingsModal } from './components/modals/UserSettingsModal';
 import { FilterSection } from './components/FilterSection';
 import { Login } from './components/Login';
 import { DashboardView } from './components/views/DashboardView';
 import { TransactionsView } from './components/views/TransactionsView';
-import { AccountsView } from './components/views/AccountsView';
+import { ManageView } from './components/views/ManageView';
 import { ChartsView } from './components/views/ChartsView';
 import { DataView } from './components/views/DataView';
+import { CategoryModal } from './components/modals/CategoryModal';
 import { useAuth } from './hooks/useAuth';
 import { useFirestoreData } from './hooks/useFirestoreData';
 import { useTransactionOperations } from './hooks/useTransactionOperations';
@@ -98,6 +100,21 @@ export default function App() {
 
   // Modal state management
   const modalState = useModalState();
+
+  // Helper function to handle transaction deletion
+  const handleDeleteTransaction = (transaction: Transaction) => {
+    if (transaction.installmentId) {
+      modalState.openInstallmentDelete(transaction, (mode) => {
+        deleteTransaction(transaction, mode);
+      });
+    } else {
+      modalState.openConfirm(
+        'Excluir Lançamento',
+        'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.',
+        () => deleteTransaction(transaction)
+      );
+    }
+  };
 
   const extratoRef = React.useRef<HTMLDivElement>(null);
   const [hasScrolledToToday, setHasScrolledToToday] = useState(false);
@@ -343,7 +360,7 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-4 landscape:p-2 pb-24">
+      <main className="flex-1 overflow-y-auto p-4 landscape:p-2 pb-32">
         <AnimatePresence mode="wait">
           {activeTab === 'dashboard' && (
             <DashboardView
@@ -364,13 +381,7 @@ export default function App() {
               onEditTransaction={(t) => {
                 modalState.openTransactionModal('expense', t);
               }}
-              onDeleteTransaction={(t) => {
-                modalState.openConfirm(
-                  'Excluir Lançamento',
-                  'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.',
-                  () => deleteTransaction(t)
-                );
-              }}
+              onDeleteTransaction={handleDeleteTransaction}
               setActiveTab={setActiveTab}
             />
           )}
@@ -390,18 +401,12 @@ export default function App() {
               onEditTransaction={(t) => {
                 modalState.openTransactionModal('expense', t);
               }}
-              onDeleteTransaction={(t) => {
-                modalState.openConfirm(
-                  'Excluir Lançamento',
-                  'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.',
-                  () => deleteTransaction(t)
-                );
-              }}
+              onDeleteTransaction={handleDeleteTransaction}
             />
           )}
 
           {activeTab === 'accounts' && (
-            <AccountsView
+            <ManageView
               accounts={accounts}
               onEditAccount={(account) => {
                 modalState.openAccountModal(account);
@@ -414,6 +419,18 @@ export default function App() {
                 );
               }}
               onAddAccount={() => modalState.openAccountModal()}
+              categories={categories}
+              onEditCategory={(category) => {
+                modalState.openCategoryModal(category);
+              }}
+              onDeleteCategory={(category) => {
+                modalState.openConfirm(
+                  'Excluir Categoria',
+                  'Deseja excluir esta categoria? Esta ação não pode ser desfeita.',
+                  () => deleteDoc(doc(db, 'categories', category.id))
+                );
+              }}
+              onAddCategory={() => modalState.openCategoryModal()}
             />
           )}
 
@@ -428,7 +445,7 @@ export default function App() {
               setSelectedCategoryId={setSelectedCategoryId}
               filterToday={filterToday}
               setFilterToday={setFilterToday}
-              getPieData={() => pieChartData}
+              getPieData={getPieData}
             />
           )}
 
@@ -494,14 +511,21 @@ export default function App() {
             userId={user.uid}
             initialType={modalState.initialTransactionType}
             onDelete={(t) => {
-              modalState.openConfirm(
-                'Excluir Lançamento',
-                'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.',
-                () => {
-                  deleteTransaction(t);
+              if (t.installmentId) {
+                modalState.openInstallmentDelete(t, (mode) => {
+                  deleteTransaction(t, mode);
                   modalState.closeTransactionModal();
-                }
-              );
+                });
+              } else {
+                modalState.openConfirm(
+                  'Excluir Lançamento',
+                  'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.',
+                  () => {
+                    deleteTransaction(t);
+                    modalState.closeTransactionModal();
+                  }
+                );
+              }
             }}
           />
         )}
@@ -515,6 +539,17 @@ export default function App() {
             userId={user.uid}
             editingAccount={modalState.editingAccount}
             transactions={transactions}
+          />
+        )}
+      </AnimatePresence>
+      {/* Category Modal */}
+      <AnimatePresence>
+        {modalState.isCategoryModalOpen && (
+          <CategoryModal
+            isOpen={modalState.isCategoryModalOpen}
+            onClose={modalState.closeCategoryModal}
+            userId={user.uid}
+            editingCategory={modalState.editingCategory}
           />
         )}
       </AnimatePresence>
@@ -542,6 +577,12 @@ export default function App() {
         message={modalState.confirmModal.message}
         onConfirm={modalState.confirmModal.onConfirm}
         onClose={modalState.closeConfirm}
+      />
+      <InstallmentDeleteModal
+        isOpen={modalState.installmentDeleteModal.isOpen}
+        transaction={modalState.installmentDeleteModal.transaction}
+        onConfirm={modalState.installmentDeleteModal.onConfirm}
+        onClose={modalState.closeInstallmentDelete}
       />
     </div>
   );
