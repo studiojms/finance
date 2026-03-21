@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import { Account, Transaction, Category } from '../types';
 import { handleFirestoreError } from '../services/errorService';
 import { DEFAULT_CATEGORIES } from '../constants';
+import { ensureCategoriesHaveColors } from '../utils/categoryMigration';
 
 export interface UseFirestoreDataReturn {
   accounts: Account[];
@@ -29,6 +30,9 @@ export function useFirestoreData(userId: string | null): UseFirestoreDataReturn 
           batch.set(ref, { ...cat, userId });
         });
         await batch.commit();
+      } else {
+        // Ensure existing categories have colors
+        await ensureCategoriesHaveColors(userId);
       }
     };
     seedCategories();

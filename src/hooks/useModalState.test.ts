@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useModalState } from './useModalState';
-import { Transaction, Account } from '../types';
+import { Transaction, Account, Category } from '../types';
 
 const mockTransaction: Transaction = {
   id: 'tx1',
@@ -23,6 +23,15 @@ const mockAccount: Account = {
   initialBalanceDate: '2026-01-01',
   color: '#10b981',
   icon: 'Banknote',
+  userId: 'user1',
+};
+
+const mockCategory: Category = {
+  id: 'cat1',
+  name: 'Food',
+  icon: 'Utensils',
+  color: '#ef4444',
+  type: 'expense',
   userId: 'user1',
 };
 
@@ -255,6 +264,54 @@ describe('useModalState', () => {
       expect(result.current.confirmModal.isOpen).toBe(false);
       expect(result.current.confirmModal.title).toBe('Delete Transaction');
       expect(result.current.confirmModal.message).toBe('Are you sure?');
+    });
+  });
+
+  describe('Category Modal', () => {
+    it('should initialize with category modal closed', () => {
+      const { result } = renderHook(() => useModalState());
+
+      expect(result.current.isCategoryModalOpen).toBe(false);
+      expect(result.current.editingCategory).toBeNull();
+    });
+
+    it('should open category modal for creating new category', () => {
+      const { result } = renderHook(() => useModalState());
+
+      act(() => {
+        result.current.openCategoryModal();
+      });
+
+      expect(result.current.isCategoryModalOpen).toBe(true);
+      expect(result.current.editingCategory).toBeNull();
+    });
+
+    it('should open category modal for editing', () => {
+      const { result } = renderHook(() => useModalState());
+
+      act(() => {
+        result.current.openCategoryModal(mockCategory);
+      });
+
+      expect(result.current.isCategoryModalOpen).toBe(true);
+      expect(result.current.editingCategory).toEqual(mockCategory);
+    });
+
+    it('should close category modal and clear editing state', () => {
+      const { result } = renderHook(() => useModalState());
+
+      act(() => {
+        result.current.openCategoryModal(mockCategory);
+      });
+
+      expect(result.current.isCategoryModalOpen).toBe(true);
+
+      act(() => {
+        result.current.closeCategoryModal();
+      });
+
+      expect(result.current.isCategoryModalOpen).toBe(false);
+      expect(result.current.editingCategory).toBeNull();
     });
   });
 

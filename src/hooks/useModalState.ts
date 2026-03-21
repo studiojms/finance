@@ -1,11 +1,17 @@
 import { useState, useCallback } from 'react';
-import { Transaction, Account, TransactionType } from '../types';
+import { Transaction, Account, TransactionType, Category } from '../types';
 
 export interface ConfirmationModalState {
   isOpen: boolean;
   title: string;
   message: string;
   onConfirm: () => void;
+}
+
+export interface InstallmentDeleteModalState {
+  isOpen: boolean;
+  transaction: Transaction | null;
+  onConfirm: (mode: 'only' | 'future') => void;
 }
 
 export interface UseModalStateReturn {
@@ -22,6 +28,12 @@ export interface UseModalStateReturn {
   openAccountModal: (account?: Account | null) => void;
   closeAccountModal: () => void;
 
+  // Category Modal
+  isCategoryModalOpen: boolean;
+  editingCategory: Category | null;
+  openCategoryModal: (category?: Category | null) => void;
+  closeCategoryModal: () => void;
+
   // Settings Modal
   isSettingsOpen: boolean;
   openSettings: () => void;
@@ -36,6 +48,11 @@ export interface UseModalStateReturn {
   confirmModal: ConfirmationModalState;
   openConfirm: (title: string, message: string, onConfirm: () => void) => void;
   closeConfirm: () => void;
+
+  // Installment Delete Modal
+  installmentDeleteModal: InstallmentDeleteModalState;
+  openInstallmentDelete: (transaction: Transaction, onConfirm: (mode: 'only' | 'future') => void) => void;
+  closeInstallmentDelete: () => void;
 }
 
 export function useModalState(): UseModalStateReturn {
@@ -48,6 +65,10 @@ export function useModalState(): UseModalStateReturn {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
 
+  // Category Modal State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
   // Settings Modal State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -59,6 +80,13 @@ export function useModalState(): UseModalStateReturn {
     isOpen: false,
     title: '',
     message: '',
+    onConfirm: () => {},
+  });
+
+  // Installment Delete Modal State
+  const [installmentDeleteModal, setInstallmentDeleteModal] = useState<InstallmentDeleteModalState>({
+    isOpen: false,
+    transaction: null,
     onConfirm: () => {},
   });
 
@@ -88,6 +116,17 @@ export function useModalState(): UseModalStateReturn {
     setEditingAccount(null);
   }, []);
 
+  // Category Modal Handlers
+  const openCategoryModal = useCallback((category: Category | null = null) => {
+    setEditingCategory(category);
+    setIsCategoryModalOpen(true);
+  }, []);
+
+  const closeCategoryModal = useCallback(() => {
+    setIsCategoryModalOpen(false);
+    setEditingCategory(null);
+  }, []);
+
   // Settings Modal Handlers
   const openSettings = useCallback(() => {
     setIsSettingsOpen(true);
@@ -115,6 +154,18 @@ export function useModalState(): UseModalStateReturn {
     setConfirmModal((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
+  // Installment Delete Modal Handlers
+  const openInstallmentDelete = useCallback(
+    (transaction: Transaction, onConfirm: (mode: 'only' | 'future') => void) => {
+      setInstallmentDeleteModal({ isOpen: true, transaction, onConfirm });
+    },
+    []
+  );
+
+  const closeInstallmentDelete = useCallback(() => {
+    setInstallmentDeleteModal((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
   return {
     // Transaction Modal
     isTransactionModalOpen,
@@ -128,6 +179,12 @@ export function useModalState(): UseModalStateReturn {
     editingAccount,
     openAccountModal,
     closeAccountModal,
+
+    // Category Modal
+    isCategoryModalOpen,
+    editingCategory,
+    openCategoryModal,
+    closeCategoryModal,
 
     // Settings Modal
     isSettingsOpen,
@@ -143,5 +200,10 @@ export function useModalState(): UseModalStateReturn {
     confirmModal,
     openConfirm,
     closeConfirm,
+
+    // Installment Delete Modal
+    installmentDeleteModal,
+    openInstallmentDelete,
+    closeInstallmentDelete,
   };
 }
