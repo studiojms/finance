@@ -17,10 +17,7 @@ export function useAuth(): UseAuthReturn {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('useAuth: Setting up auth state listener');
-
     const unsubscribe = AuthService.onAuthStateChanged((authUser) => {
-      console.log('useAuth: Auth state changed', authUser ? `User: ${authUser.email}` : 'No user');
       setUser(authUser);
       setLoading(false);
     });

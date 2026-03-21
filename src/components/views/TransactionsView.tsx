@@ -43,15 +43,15 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   onDeleteTransaction,
 }) => {
   return (
-    <motion.div 
+    <motion.div
       key="transactions"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       className="space-y-4"
     >
-      <FilterSection 
-        title="Extrato" 
+      <FilterSection
+        title="Extrato"
         filterToday={filterToday}
         setFilterToday={setFilterToday}
         selectedAccountId={selectedAccountId}
@@ -61,26 +61,28 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         accounts={accounts}
         categories={categories}
       />
-      
+
       <div className="space-y-6">
-        {transactionsByDay.map(group => (
+        {transactionsByDay.map((group) => (
           <div key={group.date} id={`group-${group.date}`} className="space-y-2">
             <div className="flex items-center gap-2 px-2 pt-2">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 {format(parseISO(group.date), "dd 'DE' MMMM", { locale: ptBR })}
               </span>
               {isToday(parseISO(group.date)) && (
-                <span className="text-[10px] font-bold bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-lg">HOJE</span>
+                <span className="text-[10px] font-bold bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-lg">
+                  HOJE
+                </span>
               )}
             </div>
 
             <div className="space-y-2">
-              {group.transactions.map(t => (
-                <TransactionItem 
-                  key={t.id} 
-                  transaction={t} 
-                  category={categories.find(c => c.id === t.categoryId)}
-                  account={accounts.find(a => a.id === t.accountId)}
+              {group.transactions.map((t) => (
+                <TransactionItem
+                  key={t.id}
+                  transaction={t}
+                  category={categories.find((c) => c.id === t.categoryId)}
+                  account={accounts.find((a) => a.id === t.accountId)}
                   onToggle={() => onToggleConsolidated(t)}
                   onEdit={() => onEditTransaction(t)}
                   onDelete={() => onDeleteTransaction(t)}
@@ -91,11 +93,11 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
             <div className="flex justify-end px-4 py-1 bg-slate-50/50 rounded-xl border border-slate-100/50">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total parcial:</span>
-                <span className={cn(
-                  "text-xs font-black",
-                  group.runningBalance >= 0 ? "text-emerald-600" : "text-rose-600"
-                )}>
-                  {group.runningBalance > 0 ? '+' : ''}{formatCurrency(group.runningBalance)}
+                <span
+                  className={cn('text-xs font-black', group.runningBalance >= 0 ? 'text-emerald-600' : 'text-rose-600')}
+                >
+                  {group.runningBalance > 0 ? '+' : ''}
+                  {formatCurrency(group.runningBalance)}
                 </span>
               </div>
             </div>
