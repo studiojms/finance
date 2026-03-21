@@ -1,6 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Plus } from 'lucide-react';
+import {
+  X,
+  Plus,
+  Tag,
+  Utensils,
+  Car,
+  Home,
+  GraduationCap,
+  Gamepad2,
+  HeartPulse,
+  Briefcase,
+  TrendingUp,
+  ShoppingBag,
+  Shirt,
+  Plane,
+  Coffee,
+  Smartphone,
+  DollarSign,
+} from 'lucide-react';
 import { format, addDays, addWeeks, addMonths, addYears, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { doc, collection, addDoc, updateDoc, writeBatch, query, where, getDocs, increment } from 'firebase/firestore';
@@ -8,6 +26,42 @@ import { db } from '../../firebase';
 import { Account, Transaction, Category, TransactionType } from '../../types';
 import { handleFirestoreError } from '../../services/errorService';
 import { formatCurrency, cn } from '../../utils';
+
+const CATEGORY_ICONS = [
+  { id: 'Tag', icon: Tag },
+  { id: 'Utensils', icon: Utensils },
+  { id: 'Car', icon: Car },
+  { id: 'Home', icon: Home },
+  { id: 'GraduationCap', icon: GraduationCap },
+  { id: 'Gamepad2', icon: Gamepad2 },
+  { id: 'HeartPulse', icon: HeartPulse },
+  { id: 'Briefcase', icon: Briefcase },
+  { id: 'TrendingUp', icon: TrendingUp },
+  { id: 'ShoppingBag', icon: ShoppingBag },
+  { id: 'Shirt', icon: Shirt },
+  { id: 'Plane', icon: Plane },
+  { id: 'Coffee', icon: Coffee },
+  { id: 'Smartphone', icon: Smartphone },
+  { id: 'DollarSign', icon: DollarSign },
+];
+
+const CATEGORY_COLORS = [
+  '#ef4444',
+  '#f59e0b',
+  '#10b981',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
+  '#06b6d4',
+  '#14b8a6',
+  '#f97316',
+  '#84cc16',
+  '#6366f1',
+  '#a855f7',
+  '#94a3b8',
+  '#64748b',
+  '#475569',
+];
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -53,6 +107,12 @@ export function TransactionModal({
   const [lastSelectedSuggestion, setLastSelectedSuggestion] = useState<string | null>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
   const suggestionRef = useRef<HTMLDivElement>(null);
+
+  // State for inline category creation
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('#94a3b8');
+  const [newCategoryIcon, setNewCategoryIcon] = useState('Tag');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -118,6 +178,29 @@ export function TransactionModal({
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+
+    try {
+      const docRef = await addDoc(collection(db, 'categories'), {
+        name: newCategoryName.trim(),
+        icon: newCategoryIcon,
+        color: newCategoryColor,
+        type: type === 'transfer' ? 'both' : type,
+        userId,
+      });
+
+      // Set the newly created category as selected
+      setCategoryId(docRef.id);
+      setIsCreatingCategory(false);
+      setNewCategoryName('');
+      setNewCategoryColor('#94a3b8');
+      setNewCategoryIcon('Tag');
+    } catch (err) {
+      handleFirestoreError(err, 'create', 'categories');
+    }
+  };
 
   const handleSave = async () => {
     const numericAmount = parseFloat(amount) / 100;
@@ -471,22 +554,114 @@ export function TransactionModal({
           )}
 
           {type !== 'transfer' && (
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-4 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 appearance-none"
-              >
-                <option value="">Selecionar...</option>
-                {categories
-                  .filter((c) => c.type === type || c.type === 'both')
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-              </select>
+            <div className="space-y-3">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                    Categoria
+                  </label>
+                  <select
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    className="w-full px-4 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 appearance-none"
+                    disabled={isCreatingCategory}
+                  >
+                    <option value="">Selecionar...</option>
+                    {categories
+                      .filter((c) => c.type === type || c.type === 'both')
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <button
+                  onClick={() => setIsCreatingCategory(!isCreatingCategory)}
+                  className={cn(
+                    'px-4 py-4 rounded-2xl font-bold text-sm transition-all',
+                    isCreatingCategory
+                      ? 'bg-rose-100 text-rose-600'
+                      : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                  )}
+                  type="button"
+                >
+                  <Plus size={20} className={cn('transition-transform', isCreatingCategory && 'rotate-45')} />
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {isCreatingCategory && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-slate-50 rounded-2xl p-4 space-y-4">
+                      <input
+                        type="text"
+                        placeholder="Nome da categoria"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border-none rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 text-sm"
+                      />
+
+                      <div>
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">
+                          Ícone
+                        </label>
+                        <div className="grid grid-cols-7 gap-2">
+                          {CATEGORY_ICONS.map(({ id, icon: Icon }) => (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => setNewCategoryIcon(id)}
+                              className={cn(
+                                'aspect-square rounded-xl flex items-center justify-center transition-all',
+                                newCategoryIcon === id
+                                  ? 'bg-emerald-600 text-white shadow-lg scale-110'
+                                  : 'bg-white text-slate-600 hover:bg-slate-100'
+                              )}
+                            >
+                              <Icon size={16} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">
+                          Cor
+                        </label>
+                        <div className="grid grid-cols-7 gap-2">
+                          {CATEGORY_COLORS.map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setNewCategoryColor(c)}
+                              className={cn(
+                                'aspect-square rounded-xl transition-all',
+                                newCategoryColor === c ? 'ring-2 ring-slate-400 scale-110' : 'hover:scale-105'
+                              )}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleCreateCategory}
+                        disabled={!newCategoryName.trim()}
+                        className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        Criar Categoria
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
