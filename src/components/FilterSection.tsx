@@ -26,53 +26,67 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   categories,
 }) => {
   return (
-    <div className="sticky top-0 bg-slate-50 py-2 z-10 space-y-3 landscape:space-y-1 landscape:py-1">
+    <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-slate-100 space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xl landscape:text-base font-bold text-slate-800">{title}</h2>
-        <button 
+        <button
           onClick={() => setFilterToday(!filterToday)}
           className={cn(
-            "px-3 py-1.5 rounded-xl text-xs font-bold transition-all border",
-            filterToday 
-              ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" 
-              : "bg-white text-slate-600 border-slate-200"
+            'px-3 py-1.5 rounded-xl text-xs font-bold transition-all border',
+            filterToday
+              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+              : 'bg-white text-slate-600 border-slate-200'
           )}
         >
           Hoje
         </button>
       </div>
-      
+
       <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         <div className="relative">
-          <select 
+          <select
             value={selectedAccountId}
             onChange={(e) => setSelectedAccountId(e.target.value)}
             className="p-2 pr-8 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-bold min-w-[120px] appearance-none"
           >
             <option value="all">Todas Contas</option>
-            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
           </select>
-          {selectedAccountId !== 'all' && accounts.find(a => a.id === selectedAccountId) && (
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full pointer-events-none" style={{ backgroundColor: accounts.find(a => a.id === selectedAccountId)?.color }} />
+          {selectedAccountId !== 'all' && accounts.find((a) => a.id === selectedAccountId) && (
+            <div
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full pointer-events-none"
+              style={{ backgroundColor: accounts.find((a) => a.id === selectedAccountId)?.color }}
+            />
           )}
         </div>
 
         <div className="relative">
-          <select 
+          <select
             value={selectedCategoryId}
             onChange={(e) => setSelectedCategoryId(e.target.value)}
             className="p-2 pr-8 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-bold min-w-[120px] appearance-none"
           >
             <option value="all">Todas Categorias</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
           </select>
-          {selectedCategoryId !== 'all' && categories.find(c => c.id === selectedCategoryId) && (
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full pointer-events-none" style={{ backgroundColor: categories.find(c => c.id === selectedCategoryId)?.color }} />
+          {selectedCategoryId !== 'all' && categories.find((c) => c.id === selectedCategoryId) && (
+            <div
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full pointer-events-none"
+              style={{ backgroundColor: categories.find((c) => c.id === selectedCategoryId)?.color }}
+            />
           )}
         </div>
 
         {(selectedAccountId !== 'all' || selectedCategoryId !== 'all' || filterToday) && (
-          <button 
+          <button
             onClick={() => {
               setSelectedAccountId('all');
               setSelectedCategoryId('all');

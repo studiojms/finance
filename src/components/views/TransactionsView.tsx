@@ -62,7 +62,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         categories={categories}
       />
       
-      <div className="space-y-6 pb-20">
+      <div className="space-y-6">
         {transactionsByDay.map(group => (
           <div key={group.date} id={`group-${group.date}`} className="space-y-2">
             <div className="flex items-center gap-2 px-2 pt-2">

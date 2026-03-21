@@ -65,7 +65,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
         ))}
         <button 
           onClick={onAddAccount}
-          className="w-full py-4 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold flex items-center justify-center gap-2"
+          className="w-full py-4 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold flex items-center justify-center gap-2 mb-20"
         >
           <Plus size={20} />
           Adicionar Conta
