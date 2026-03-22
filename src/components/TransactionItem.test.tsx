@@ -218,6 +218,27 @@ describe('TransactionItem', () => {
     expect(screen.getByText('2/5')).toBeInTheDocument();
   });
 
+  it('displays infinite installment information correctly', () => {
+    const infiniteInstallmentTransaction = {
+      ...mockTransaction,
+      installmentId: 'inst-2',
+      installmentNumber: 3,
+      totalInstallments: null,
+    };
+    render(
+      <TransactionItem
+        transaction={infiniteInstallmentTransaction}
+        category={mockCategory}
+        account={mockAccount}
+        onToggle={mockOnToggle}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    expect(screen.getByText('#3')).toBeInTheDocument();
+  });
+
   it('displays "Transferência" for transfer type', () => {
     const transferTransaction = { ...mockTransaction, type: 'transfer' as const };
     render(

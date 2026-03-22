@@ -21,9 +21,11 @@ export function InstallmentDeleteModal({ isOpen, onClose, transaction, onConfirm
 
   if (!isOpen || !transaction) return null;
 
+  const isInfinite = transaction.totalInstallments === null;
   const installmentText = transaction.totalInstallments
     ? `${transaction.installmentNumber}/${transaction.totalInstallments}`
     : `#${transaction.installmentNumber}`;
+  const typeLabel = isInfinite ? 'Indefinido' : 'Parcelado';
 
   return (
     <motion.div
@@ -52,9 +54,11 @@ export function InstallmentDeleteModal({ isOpen, onClose, transaction, onConfirm
           <div className="bg-rose-50 rounded-2xl p-4 flex gap-3">
             <AlertCircle className="text-rose-600 flex-shrink-0" size={24} />
             <div>
-              <p className="font-bold text-rose-900 text-sm">Lançamento Parcelado</p>
+              <p className="font-bold text-rose-900 text-sm">Lançamento {typeLabel}</p>
               <p className="text-rose-700 text-xs mt-1">
-                Este lançamento é a parcela {installmentText}. Como deseja excluir?
+                {isInfinite
+                  ? `Este lançamento faz parte de uma série indefinida (ocorrência ${installmentText}). Como deseja excluir?`
+                  : `Este lançamento é a parcela ${installmentText}. Como deseja excluir?`}
               </p>
             </div>
           </div>
@@ -77,9 +81,11 @@ export function InstallmentDeleteModal({ isOpen, onClose, transaction, onConfirm
                 className="mt-0.5 w-5 h-5 text-emerald-600 focus:ring-emerald-500"
               />
               <div>
-                <p className="font-bold text-slate-800 text-sm">Apenas esta parcela</p>
+                <p className="font-bold text-slate-800 text-sm">Apenas esta {isInfinite ? 'ocorrência' : 'parcela'}</p>
                 <p className="text-slate-600 text-xs mt-1">
-                  Exclui somente a parcela {installmentText}, mantendo as demais
+                  {isInfinite
+                    ? `Exclui somente esta ocorrência ${installmentText}, mantendo as demais`
+                    : `Exclui somente a parcela ${installmentText}, mantendo as demais`}
                 </p>
               </div>
             </label>
@@ -101,9 +107,13 @@ export function InstallmentDeleteModal({ isOpen, onClose, transaction, onConfirm
                 className="mt-0.5 w-5 h-5 text-emerald-600 focus:ring-emerald-500"
               />
               <div>
-                <p className="font-bold text-slate-800 text-sm">Esta e parcelas futuras</p>
+                <p className="font-bold text-slate-800 text-sm">
+                  Esta e {isInfinite ? 'ocorrências futuras' : 'parcelas futuras'}
+                </p>
                 <p className="text-slate-600 text-xs mt-1">
-                  Exclui a parcela {installmentText} e todas as parcelas seguintes
+                  {isInfinite
+                    ? `Exclui esta ocorrência ${installmentText} e todas as ocorrências futuras (encerra a série)`
+                    : `Exclui a parcela ${installmentText} e todas as parcelas seguintes`}
                 </p>
               </div>
             </label>

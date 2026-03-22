@@ -34,7 +34,7 @@ export interface Transaction {
   userId: string;
   installmentId?: string;
   installmentNumber?: number;
-  totalInstallments?: number;
+  totalInstallments?: number | null;
   toAccountId?: string;
   frequency?: string | null;
 }

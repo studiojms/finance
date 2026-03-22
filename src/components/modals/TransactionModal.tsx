@@ -97,6 +97,7 @@ export function TransactionModal({
     'daily' | 'weekly' | 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'annual'
   >((editingTransaction?.frequency as any) || 'monthly');
   const [installments, setInstallments] = useState(editingTransaction?.totalInstallments?.toString() || '1');
+  const [isInfinite, setIsInfinite] = useState(editingTransaction?.totalInstallments === null);
   const [isConsolidated, setIsConsolidated] = useState(editingTransaction?.isConsolidated || false);
   const [editMode, setEditMode] = useState<'only' | 'future'>('only');
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -295,10 +296,12 @@ export function TransactionModal({
             const indexDiff = (dData.installmentNumber || 1) - (editingTransaction.installmentNumber || 1);
             const newDate = getNextDate(new Date(date), frequency, indexDiff);
 
-            // Add installment suffix to description if we have totalInstallments
-            const descriptionWithSuffix = dData.totalInstallments
-              ? `${description} (${dData.installmentNumber}/${dData.totalInstallments})`
-              : description;
+            const descriptionWithSuffix =
+              dData.totalInstallments === null
+                ? `${description} (#${dData.installmentNumber})`
+                : dData.totalInstallments
+                  ? `${description} (${dData.installmentNumber}/${dData.totalInstallments})`
+                  : description;
 
             const updatedT = {
               ...baseTransaction,
@@ -316,21 +319,22 @@ export function TransactionModal({
           updateBalance(baseTransaction, false, editingTransaction);
         }
       } else {
-        const numInstallments = parseInt(installments);
-        if (numInstallments > 1) {
+        const numInstallments = isInfinite ? 24 : parseInt(installments);
+        if (numInstallments > 1 || isInfinite) {
           const installmentId = crypto.randomUUID();
           for (let i = 0; i < numInstallments; i++) {
             const installmentDate = getNextDate(new Date(date), frequency, i);
             const tRef = doc(collection(db, 'transactions'));
-            // Add installment suffix to description (i/n)
-            const descriptionWithSuffix = `${description} (${i + 1}/${numInstallments})`;
+            const descriptionWithSuffix = isInfinite
+              ? `${description} (#${i + 1})`
+              : `${description} (${i + 1}/${numInstallments})`;
             const newT = {
               ...baseTransaction,
               description: descriptionWithSuffix,
               date: installmentDate.toISOString(),
               installmentId,
               installmentNumber: i + 1,
-              totalInstallments: numInstallments,
+              totalInstallments: isInfinite ? null : numInstallments,
               isConsolidated: i === 0 ? isConsolidated : false,
             };
             batch.set(tRef, newT);
@@ -691,7 +695,8 @@ export function TransactionModal({
                         min="1"
                         value={installments}
                         onChange={(e) => setInstallments(e.target.value)}
-                        className="w-full px-4 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                        disabled={isInfinite}
+                        className="w-full px-4 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -713,6 +718,25 @@ export function TransactionModal({
                       </select>
                     </div>
                   </div>
+
+                  <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isInfinite}
+                      onChange={(e) => setIsInfinite(e.target.checked)}
+                      className="w-5 h-5 rounded-lg border-slate-300 text-violet-600 focus:ring-2 focus:ring-violet-500 transition-all"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-slate-800">
+                        {type === 'transfer' ? 'Repetição Indefinida' : 'Parcelamento Indefinido'}
+                      </p>
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        {type === 'transfer'
+                          ? 'Repetir automaticamente sem data final (ex: internet, aluguel)'
+                          : 'Repetir automaticamente sem número definido de parcelas'}
+                      </p>
+                    </div>
+                  </label>
                 </motion.div>
               )}
             </div>
@@ -720,7 +744,9 @@ export function TransactionModal({
 
           {editingTransaction?.installmentId && (
             <div className="p-4 bg-emerald-50 rounded-2xl space-y-2">
-              <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Editar parcelas:</p>
+              <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                {editingTransaction.totalInstallments === null ? 'Editar série indefinida:' : 'Editar parcelas:'}
+              </p>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 text-sm text-emerald-700">
                   <input type="radio" checked={editMode === 'only'} onChange={() => setEditMode('only')} />

@@ -159,4 +159,67 @@ describe('InstallmentDeleteModal', () => {
 
     expect(screen.getByText(/exclui a parcela.*e todas as parcelas seguintes/i)).toBeInTheDocument();
   });
+
+  describe('Infinite Installments', () => {
+    const infiniteTransaction: Transaction = {
+      id: 'trans2',
+      description: 'Internet (#3)',
+      amount: 100,
+      date: '2026-03-20T12:00:00.000Z',
+      type: 'expense',
+      accountId: 'acc1',
+      categoryId: 'cat1',
+      userId: 'user1',
+      isConsolidated: true,
+      installmentId: 'inst2',
+      installmentNumber: 3,
+      totalInstallments: null,
+    };
+
+    it('shows correct label for infinite installments', () => {
+      render(<InstallmentDeleteModal {...defaultProps} transaction={infiniteTransaction} />);
+
+      expect(screen.getByText('Lançamento Indefinido')).toBeInTheDocument();
+    });
+
+    it('shows infinite installment information in warning', () => {
+      render(<InstallmentDeleteModal {...defaultProps} transaction={infiniteTransaction} />);
+
+      expect(screen.getByText(/faz parte de uma série indefinida \(ocorrência #3\)/i)).toBeInTheDocument();
+    });
+
+    it('shows "ocorrência" instead of "parcela" for infinite installments', () => {
+      render(<InstallmentDeleteModal {...defaultProps} transaction={infiniteTransaction} />);
+
+      expect(screen.getByText(/apenas esta ocorrência/i)).toBeInTheDocument();
+      expect(screen.queryByText(/apenas esta parcela/i)).not.toBeInTheDocument();
+    });
+
+    it('shows correct future deletion text for infinite installments', () => {
+      render(<InstallmentDeleteModal {...defaultProps} transaction={infiniteTransaction} />);
+
+      expect(screen.getByText(/esta e ocorrências futuras/i)).toBeInTheDocument();
+      expect(screen.getByText(/encerra a série/i)).toBeInTheDocument();
+    });
+
+    it('shows correct description for deleting single occurrence', () => {
+      render(<InstallmentDeleteModal {...defaultProps} transaction={infiniteTransaction} />);
+
+      expect(screen.getByText(/exclui somente esta ocorrência #3, mantendo as demais/i)).toBeInTheDocument();
+    });
+
+    it('works with delete modes for infinite installments', async () => {
+      const user = userEvent.setup();
+      const onConfirm = vi.fn();
+      render(<InstallmentDeleteModal {...defaultProps} transaction={infiniteTransaction} onConfirm={onConfirm} />);
+
+      const futureRadio = screen.getByRole('radio', { name: /esta e ocorrências futuras/i });
+      await user.click(futureRadio);
+
+      const excluirButton = screen.getByRole('button', { name: 'Excluir' });
+      await user.click(excluirButton);
+
+      expect(onConfirm).toHaveBeenCalledWith('future');
+    });
+  });
 });

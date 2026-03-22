@@ -14,19 +14,32 @@ interface TransactionItemProps {
   onDelete: () => void;
 }
 
-export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, category, account, onToggle, onEdit, onDelete }) => {
+export const TransactionItem: React.FC<TransactionItemProps> = ({
+  transaction,
+  category,
+  account,
+  onToggle,
+  onEdit,
+  onDelete,
+}) => {
   return (
-    <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4 active:bg-slate-50 transition-colors group" onClick={onEdit}>
-      <button 
-        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+    <div
+      className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4 active:bg-slate-50 transition-colors group"
+      onClick={onEdit}
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
         className={cn(
-          "w-6 h-6 rounded-full flex items-center justify-center transition-all",
-          transaction.isConsolidated ? "bg-emerald-100 text-emerald-600" : "border-2 border-slate-200 text-transparent"
+          'w-6 h-6 rounded-full flex items-center justify-center transition-all',
+          transaction.isConsolidated ? 'bg-emerald-100 text-emerald-600' : 'border-2 border-slate-200 text-transparent'
         )}
       >
         <CheckCircle2 size={16} />
       </button>
-      
+
       <div className="flex-1">
         <div className="flex justify-between items-start">
           <div className="flex flex-col">
@@ -39,16 +52,24 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, c
             )}
           </div>
           <div className="flex items-center gap-3">
-            <span className={cn(
-              "font-bold",
-              transaction.type === 'income' ? "text-emerald-600" : 
-              transaction.type === 'expense' ? "text-rose-600" : 
-              "text-violet-600"
-            )}>
-              {transaction.type === 'expense' ? '-' : ''}{formatCurrency(transaction.amount)}
+            <span
+              className={cn(
+                'font-bold',
+                transaction.type === 'income'
+                  ? 'text-emerald-600'
+                  : transaction.type === 'expense'
+                    ? 'text-rose-600'
+                    : 'text-violet-600'
+              )}
+            >
+              {transaction.type === 'expense' ? '-' : ''}
+              {formatCurrency(transaction.amount)}
             </span>
-            <button 
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
               className="p-1 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <Trash2 size={16} />
@@ -61,13 +82,15 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, c
           </span>
           <span className="w-1 h-1 rounded-full bg-slate-300" />
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {transaction.type === 'transfer' ? 'Transferência' : (category?.name || 'Sem categoria')}
+            {transaction.type === 'transfer' ? 'Transferência' : category?.name || 'Sem categoria'}
           </span>
           {transaction.installmentId && (
             <>
               <span className="w-1 h-1 rounded-full bg-slate-300" />
               <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
-                {transaction.installmentNumber}/{transaction.totalInstallments}
+                {transaction.totalInstallments === null
+                  ? `#${transaction.installmentNumber}`
+                  : `${transaction.installmentNumber}/${transaction.totalInstallments}`}
               </span>
             </>
           )}
@@ -75,4 +98,4 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, c
       </div>
     </div>
   );
-}
+};
