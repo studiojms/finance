@@ -10,12 +10,9 @@ interface NavButtonProps {
 
 export function NavButton({ active, onClick, icon, label }: NavButtonProps) {
   return (
-    <button 
+    <button
       onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-1 transition-all",
-        active ? "text-emerald-600" : "text-slate-400"
-      )}
+      className={cn('flex flex-col items-center gap-1 transition-all', active ? 'text-emerald-600' : 'text-slate-400')}
     >
       {icon}
       <span className="text-[10px] font-bold uppercase tracking-tighter">{label}</span>

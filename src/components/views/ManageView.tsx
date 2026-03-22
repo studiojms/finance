@@ -41,24 +41,24 @@ export const ManageView: React.FC<ManageViewProps> = ({
     >
       <div className="sticky top-0 z-10 bg-slate-50 pb-4 -mx-4 px-4 pt-0">
         <div className="flex gap-2 bg-slate-100 p-1 rounded-2xl">
-        <button
-          onClick={() => setActiveSubTab('accounts')}
-          className={cn(
-            'flex-1 py-3 rounded-xl font-bold text-sm transition-all',
-            activeSubTab === 'accounts' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
-          )}
-        >
-          Contas
-        </button>
-        <button
-          onClick={() => setActiveSubTab('categories')}
-          className={cn(
-            'flex-1 py-3 rounded-xl font-bold text-sm transition-all',
-            activeSubTab === 'categories' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
-          )}
-        >
-          Categorias
-        </button>
+          <button
+            onClick={() => setActiveSubTab('accounts')}
+            className={cn(
+              'flex-1 py-3 rounded-xl font-bold text-sm transition-all',
+              activeSubTab === 'accounts' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+            )}
+          >
+            Contas
+          </button>
+          <button
+            onClick={() => setActiveSubTab('categories')}
+            className={cn(
+              'flex-1 py-3 rounded-xl font-bold text-sm transition-all',
+              activeSubTab === 'categories' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+            )}
+          >
+            Categorias
+          </button>
         </div>
       </div>
 

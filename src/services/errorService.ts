@@ -1,8 +1,9 @@
 import { auth } from '../firebase';
 
-export const handleFirestoreError = (error: any, operation: string, path: string) => {
+export const handleFirestoreError = (error: unknown, operation: string, path: string) => {
+  const errorMessage = error instanceof Error ? error.message : String(error);
   const errInfo = {
-    error: error.message || String(error),
+    error: errorMessage,
     operationType: operation,
     path,
     authInfo: {

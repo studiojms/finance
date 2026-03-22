@@ -10,7 +10,7 @@ export interface OfflineOperation {
   type: 'create' | 'update' | 'delete';
   collection: string;
   documentId?: string;
-  data?: any;
+  data?: Record<string, unknown>;
   timestamp: number;
   synced: boolean;
 }
@@ -28,8 +28,8 @@ export class LocalStorageService {
         resolve();
       };
 
-      request.onupgradeneeded = (event: any) => {
-        const db = event.target.result;
+      request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+        const db = (event.target as IDBOpenDBRequest).result;
 
         // Store for cached data
         if (!db.objectStoreNames.contains('documents')) {
@@ -55,7 +55,7 @@ export class LocalStorageService {
   }
 
   // Document operations
-  static async saveDocument(collection: string, userId: string, doc: any): Promise<void> {
+  static async saveDocument(collection: string, userId: string, doc: Record<string, unknown>): Promise<void> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -75,7 +75,7 @@ export class LocalStorageService {
     });
   }
 
-  static async getDocuments(collection: string, userId: string): Promise<any[]> {
+  static async getDocuments(collection: string, userId: string): Promise<Record<string, unknown>[]> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -92,7 +92,7 @@ export class LocalStorageService {
     });
   }
 
-  static async getDocument(id: string): Promise<any | null> {
+  static async getDocument(id: string): Promise<Record<string, unknown> | null> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -126,7 +126,9 @@ export class LocalStorageService {
     const store = transaction.objectStore('documents');
 
     docs.forEach((doc) => {
-      store.delete(doc.id);
+      if (typeof (doc as { id?: unknown }).id === 'string') {
+        store.delete((doc as { id: string }).id);
+      }
     });
   }
 
@@ -224,7 +226,7 @@ export class LocalStorageService {
   }
 
   // Metadata operations
-  static async setMetadata(key: string, value: any): Promise<void> {
+  static async setMetadata(key: string, value: unknown): Promise<void> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -237,13 +239,13 @@ export class LocalStorageService {
     });
   }
 
-  static async getMetadata(key: string): Promise<any> {
+  static async getMetadata(key: string): Promise<unknown> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['metadata'], 'readonly');
       const store = transaction.objectStore('metadata');
-      const request = store.get(key);
+      const request = store.get(key as string);
 
       request.onsuccess = () => resolve(request.result?.value);
       request.onerror = () => reject(request.error);

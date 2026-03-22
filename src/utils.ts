@@ -8,16 +8,18 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getPieData(transactions: Transaction[], categories: Category[]) {
-  const data: Record<string, { value: number, color: string }> = {};
-  
-  transactions.filter(t => t.type === 'expense').forEach(t => {
-    const cat = categories.find(c => c.id === t.categoryId);
-    const name = cat?.name || 'Outros';
-    if (!data[name]) {
-      data[name] = { value: 0, color: cat?.color || '#cbd5e1' };
-    }
-    data[name].value += t.amount;
-  });
+  const data: Record<string, { value: number; color: string }> = {};
+
+  transactions
+    .filter((t) => t.type === 'expense')
+    .forEach((t) => {
+      const cat = categories.find((c) => c.id === t.categoryId);
+      const name = cat?.name || 'Outros';
+      if (!data[name]) {
+        data[name] = { value: 0, color: cat?.color || '#cbd5e1' };
+      }
+      data[name].value += t.amount;
+    });
 
   return Object.entries(data).map(([name, info]) => ({ name, ...info }));
 }

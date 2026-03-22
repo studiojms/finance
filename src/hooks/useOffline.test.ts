@@ -69,7 +69,7 @@ describe('useOffline', () => {
 
     it('updates isOnline when connection changes', async () => {
       let connectionCallback: ((isOnline: boolean) => void) | null = null;
-      
+
       vi.mocked(ConnectionService.addListener).mockImplementation((callback) => {
         connectionCallback = callback;
         return () => {};
@@ -92,7 +92,7 @@ describe('useOffline', () => {
 
     it('updates sync status when sync is in progress', async () => {
       let syncCallback: ((status: string, progress: number) => void) | null = null;
-      
+
       vi.mocked(SyncService.addSyncCallback).mockImplementation((callback) => {
         syncCallback = callback;
         return () => {};
@@ -113,7 +113,7 @@ describe('useOffline', () => {
 
     it('updates pending count after sync', async () => {
       let syncCallback: ((status: string, progress: number) => void) | null = null;
-      
+
       vi.mocked(SyncService.addSyncCallback).mockImplementation((callback) => {
         syncCallback = callback;
         return () => {};
@@ -145,9 +145,7 @@ describe('useOffline', () => {
     });
 
     it('handles sync errors gracefully', async () => {
-      vi.mocked(SyncService.syncPendingOperations).mockRejectedValue(
-        new Error('Sync failed')
-      );
+      vi.mocked(SyncService.syncPendingOperations).mockRejectedValue(new Error('Sync failed'));
 
       const { result } = renderHook(() => useOffline());
 

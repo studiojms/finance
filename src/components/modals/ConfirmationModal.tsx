@@ -10,25 +10,19 @@ interface ConfirmationModalProps {
   onClose: () => void;
 }
 
-export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
-  isOpen,
-  title,
-  message,
-  onConfirm,
-  onClose,
-}) => {
+export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, title, message, onConfirm, onClose }) => {
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -38,11 +32,9 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               <Trash2 size={32} />
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
-            <p className="text-sm text-slate-500 mb-8 leading-relaxed">
-              {message}
-            </p>
+            <p className="text-sm text-slate-500 mb-8 leading-relaxed">{message}</p>
             <div className="flex flex-col gap-3">
-              <button 
+              <button
                 onClick={() => {
                   onConfirm();
                   onClose();
@@ -51,7 +43,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               >
                 Sim, Excluir
               </button>
-              <button 
+              <button
                 onClick={onClose}
                 className="w-full py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl active:scale-95 transition-transform"
               >

@@ -43,5 +43,5 @@ export interface FirestoreErrorInfo {
   error: string;
   operationType: 'create' | 'update' | 'delete' | 'list' | 'get' | 'write';
   path: string | null;
-  authInfo: any;
+  authInfo: unknown;
 }

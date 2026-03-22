@@ -9,23 +9,19 @@ interface QuickActionPopupProps {
   onSelect: (type: TransactionType) => void;
 }
 
-export const QuickActionPopup: React.FC<QuickActionPopupProps> = ({
-  isOpen,
-  onClose,
-  onSelect,
-}) => {
+export const QuickActionPopup: React.FC<QuickActionPopupProps> = ({ isOpen, onClose, onSelect }) => {
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
@@ -37,9 +33,9 @@ export const QuickActionPopup: React.FC<QuickActionPopupProps> = ({
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-4">
-              <button 
+              <button
                 onClick={() => onSelect('expense')}
                 className="flex items-center gap-4 p-5 bg-rose-50 hover:bg-rose-100 rounded-3xl transition-colors group"
               >
@@ -52,7 +48,7 @@ export const QuickActionPopup: React.FC<QuickActionPopupProps> = ({
                 </div>
               </button>
 
-              <button 
+              <button
                 onClick={() => onSelect('income')}
                 className="flex items-center gap-4 p-5 bg-emerald-50 hover:bg-emerald-100 rounded-3xl transition-colors group"
               >
@@ -65,7 +61,7 @@ export const QuickActionPopup: React.FC<QuickActionPopupProps> = ({
                 </div>
               </button>
 
-              <button 
+              <button
                 onClick={() => onSelect('transfer')}
                 className="flex items-center gap-4 p-5 bg-violet-50 hover:bg-violet-100 rounded-3xl transition-colors group"
               >

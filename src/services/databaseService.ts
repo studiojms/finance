@@ -120,7 +120,7 @@ export class DatabaseService {
       const documents = await LocalStorageService.getDocuments(collectionName, userId);
       return documents.map((doc) => {
         const { collection, timestamp, ...rest } = doc;
-        return rest;
+        return rest as DatabaseDocument;
       });
     } catch (error) {
       console.error('Failed to load cached data:', error);
@@ -181,10 +181,10 @@ export class DatabaseService {
     // Update local storage immediately
     const existingDoc = await LocalStorageService.getDocument(docId);
     if (existingDoc) {
-      await LocalStorageService.saveDocument(collectionName, existingDoc.userId || '', {
+      await LocalStorageService.saveDocument(collectionName, (existingDoc as { userId?: string }).userId || '', {
         ...existingDoc,
         ...data,
-      });
+      } as Record<string, unknown>);
     }
 
     if (!ConnectionService.isOnline()) {
@@ -253,7 +253,10 @@ export class DatabaseService {
     // Try local storage first
     const cachedDoc = await LocalStorageService.getDocument(docId);
     if (cachedDoc && !ConnectionService.isOnline()) {
-      const { collection, timestamp, ...rest } = cachedDoc;
+      const { collection, timestamp, ...rest } = cachedDoc as Record<string, unknown> & {
+        collection?: string;
+        timestamp?: number;
+      };
       return rest as DatabaseDocument;
     }
 
@@ -277,7 +280,7 @@ export class DatabaseService {
       return document;
     }
 
-    return cachedDoc ? cachedDoc : null;
+    return cachedDoc ? (cachedDoc as DatabaseDocument) : null;
   }
 
   static async queryDocuments(collectionName: string, constraints: any[]): Promise<DatabaseDocument[]> {

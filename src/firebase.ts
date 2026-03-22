@@ -1,11 +1,11 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, enableIndexedDbPersistence, Firestore } from 'firebase/firestore';
 import { APP_CONFIG } from './config';
 
-let app: any = null;
-let db: any = null;
-let auth: any = null;
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+let auth: Auth | null = null;
 
 if (APP_CONFIG.backend === 'firebase' && APP_CONFIG.firebase.apiKey) {
   app = initializeApp(APP_CONFIG.firebase);

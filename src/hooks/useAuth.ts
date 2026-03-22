@@ -29,8 +29,9 @@ export function useAuth(): UseAuthReturn {
     try {
       setError(null);
       await AuthService.signInWithGoogle();
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to sign in with Google';
+      setError(message);
       console.error('Sign in error:', err);
     }
   };
@@ -39,8 +40,9 @@ export function useAuth(): UseAuthReturn {
     try {
       setError(null);
       await AuthService.signInWithEmail(email, password);
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to sign in';
+      setError(message);
       console.error('Sign in error:', err);
       throw err;
     }
@@ -50,8 +52,9 @@ export function useAuth(): UseAuthReturn {
     try {
       setError(null);
       await AuthService.signUpWithEmail(email, password, displayName);
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign up');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to sign up';
+      setError(message);
       console.error('Sign up error:', err);
       throw err;
     }
@@ -61,8 +64,9 @@ export function useAuth(): UseAuthReturn {
     try {
       setError(null);
       await AuthService.signOut();
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign out');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to sign out';
+      setError(message);
       console.error('Sign out error:', err);
     }
   };

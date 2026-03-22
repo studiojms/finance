@@ -37,7 +37,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       expect(screen.getByText(/syncing/i)).toBeInTheDocument();
       expect(screen.getByText(/3/)).toBeInTheDocument();
     });
@@ -53,7 +53,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       expect(screen.getByText(/5/)).toBeInTheDocument();
     });
   });
@@ -70,7 +70,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       expect(screen.getByText(/offline/i)).toBeInTheDocument();
     });
 
@@ -85,7 +85,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       expect(screen.getByText(/offline/i)).toBeInTheDocument();
       expect(screen.getByText(/7/)).toBeInTheDocument();
     });
@@ -101,7 +101,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       expect(screen.getByText(/will sync when online/i)).toBeInTheDocument();
     });
   });
@@ -118,7 +118,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       expect(screen.getByText(/syncing/i)).toBeInTheDocument();
     });
 
@@ -133,7 +133,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       expect(screen.getByText(/syncing/i)).toBeInTheDocument();
     });
 
@@ -148,7 +148,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       expect(screen.getByText(/8/)).toBeInTheDocument();
     });
   });
@@ -165,7 +165,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       const syncButton = screen.getByRole('button');
       expect(syncButton).toBeInTheDocument();
     });
@@ -183,7 +183,7 @@ describe('OfflineIndicator', () => {
 
       const user = userEvent.setup();
       render(<OfflineIndicator />);
-      
+
       const syncButton = screen.getByRole('button');
       await user.click(syncButton);
 
@@ -201,7 +201,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       const syncButton = screen.getByRole('button');
       expect(syncButton).toBeDisabled();
     });
@@ -217,7 +217,7 @@ describe('OfflineIndicator', () => {
       });
 
       render(<OfflineIndicator />);
-      
+
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
   });
@@ -234,7 +234,7 @@ describe('OfflineIndicator', () => {
       });
 
       const { container } = render(<OfflineIndicator />);
-      
+
       const indicator = container.firstChild as HTMLElement;
       expect(indicator).toHaveClass('bg-red-500');
     });
@@ -250,7 +250,7 @@ describe('OfflineIndicator', () => {
       });
 
       const { container } = render(<OfflineIndicator />);
-      
+
       const indicator = container.firstChild as HTMLElement;
       expect(indicator).toHaveClass('bg-yellow-500');
     });
@@ -266,7 +266,7 @@ describe('OfflineIndicator', () => {
       });
 
       const { container } = render(<OfflineIndicator />);
-      
+
       const indicator = container.firstChild as HTMLElement;
       expect(indicator).toHaveClass('bg-blue-500');
     });

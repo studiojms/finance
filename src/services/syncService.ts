@@ -104,7 +104,7 @@ export class SyncService {
     type: string,
     collectionName: string,
     documentId?: string,
-    data?: any
+    data?: Record<string, unknown>
   ): Promise<void> {
     switch (type) {
       case 'create':
@@ -127,7 +127,7 @@ export class SyncService {
     type: string,
     collectionName: string,
     documentId?: string,
-    data?: any
+    data?: Record<string, unknown>
   ): Promise<void> {
     switch (type) {
       case 'create':

@@ -21,7 +21,7 @@ export const DataView: React.FC<DataViewProps> = ({
   onImport,
 }) => {
   return (
-    <motion.div 
+    <motion.div
       key="data"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -29,7 +29,7 @@ export const DataView: React.FC<DataViewProps> = ({
       className="space-y-6"
     >
       <h2 className="text-xl font-bold text-slate-800">Importar e Exportar</h2>
-      
+
       <div className="grid gap-4">
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
           <div className="flex items-center gap-4 mb-4">
@@ -41,7 +41,7 @@ export const DataView: React.FC<DataViewProps> = ({
               <p className="text-xs text-slate-400 text-balance">Baixe todos os seus lançamentos em formato CSV.</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onExport}
             className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 active:scale-95 transition-all"
           >
@@ -59,15 +59,17 @@ export const DataView: React.FC<DataViewProps> = ({
               <p className="text-xs text-slate-400 text-balance">Envie um arquivo CSV com seus lançamentos.</p>
             </div>
           </div>
-          <label className={cn(
-            "block w-full py-4 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-all text-center cursor-pointer",
-            isImporting ? "bg-slate-400 cursor-not-allowed" : "bg-violet-600 shadow-violet-100"
-          )}>
+          <label
+            className={cn(
+              'block w-full py-4 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-all text-center cursor-pointer',
+              isImporting ? 'bg-slate-400 cursor-not-allowed' : 'bg-violet-600 shadow-violet-100'
+            )}
+          >
             {isImporting ? 'Importando...' : 'Importar CSV'}
-            <input 
-              type="file" 
-              accept=".csv" 
-              className="hidden" 
+            <input
+              type="file"
+              accept=".csv"
+              className="hidden"
               disabled={isImporting}
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -79,23 +81,34 @@ export const DataView: React.FC<DataViewProps> = ({
           {importStatus !== 'idle' && (
             <div className="mt-4 space-y-2">
               <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
-                <span className={cn(
-                  importStatus === 'processing' ? "text-violet-600" :
-                  importStatus === 'success' ? "text-emerald-600" : "text-rose-600"
-                )}>
-                  {importStatus === 'processing' ? `Processando... ${importProgress}%` :
-                   importStatus === 'success' ? 'Importação concluída!' : 'Erro na importação'}
+                <span
+                  className={cn(
+                    importStatus === 'processing'
+                      ? 'text-violet-600'
+                      : importStatus === 'success'
+                        ? 'text-emerald-600'
+                        : 'text-rose-600'
+                  )}
+                >
+                  {importStatus === 'processing'
+                    ? `Processando... ${importProgress}%`
+                    : importStatus === 'success'
+                      ? 'Importação concluída!'
+                      : 'Erro na importação'}
                 </span>
                 {importStatus === 'processing' && <span className="text-slate-400">{importProgress}%</span>}
               </div>
               <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                <motion.div 
+                <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${importProgress}%` }}
                   className={cn(
-                    "h-full transition-all duration-500",
-                    importStatus === 'processing' ? "bg-violet-500" :
-                    importStatus === 'success' ? "bg-emerald-500" : "bg-rose-500"
+                    'h-full transition-all duration-500',
+                    importStatus === 'processing'
+                      ? 'bg-violet-500'
+                      : importStatus === 'success'
+                        ? 'bg-emerald-500'
+                        : 'bg-rose-500'
                   )}
                 />
               </div>
