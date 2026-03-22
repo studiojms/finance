@@ -94,8 +94,8 @@ export default function App() {
   };
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedAccountId, setSelectedAccountId] = useState<string | 'all'>('all');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | 'all'>('all');
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [filterToday, setFilterToday] = useState(false);
 
   // Modal state management
@@ -136,8 +136,8 @@ export default function App() {
       accounts,
       categories,
       currentMonth,
-      selectedAccountId,
-      selectedCategoryId,
+      selectedAccountIds,
+      selectedCategoryIds,
       filterToday,
       includePreviousBalance,
       transactionSortOrder,
@@ -353,7 +353,11 @@ export default function App() {
 
         <div className="text-center landscape:flex landscape:items-center landscape:justify-center landscape:gap-4">
           <p className="text-emerald-100 text-sm mb-1 landscape:mb-0">
-            {selectedAccountId === 'all' ? 'Saldo Total' : 'Saldo da Conta'}
+            {selectedAccountIds.length === 0 || selectedAccountIds.length === accounts.length
+              ? 'Saldo Total'
+              : selectedAccountIds.length === 1
+                ? 'Saldo da Conta'
+                : 'Saldo das Contas'}
           </p>
           <h1 className="text-4xl landscape:text-2xl font-black tracking-tight">{formatCurrency(totalBalance)}</h1>
         </div>
@@ -371,10 +375,10 @@ export default function App() {
               upcomingTransactions={upcomingTransactions}
               totals={totals}
               totalBalance={totalBalance}
-              selectedAccountId={selectedAccountId}
-              setSelectedAccountId={setSelectedAccountId}
-              selectedCategoryId={selectedCategoryId}
-              setSelectedCategoryId={setSelectedCategoryId}
+              selectedAccountIds={selectedAccountIds}
+              setSelectedAccountIds={setSelectedAccountIds}
+              selectedCategoryIds={selectedCategoryIds}
+              setSelectedCategoryIds={setSelectedCategoryIds}
               filterToday={filterToday}
               setFilterToday={setFilterToday}
               onToggleConsolidated={toggleConsolidated}
@@ -391,10 +395,10 @@ export default function App() {
               transactionsByDay={transactionsByDay}
               categories={categories}
               accounts={accounts}
-              selectedAccountId={selectedAccountId}
-              setSelectedAccountId={setSelectedAccountId}
-              selectedCategoryId={selectedCategoryId}
-              setSelectedCategoryId={setSelectedCategoryId}
+              selectedAccountIds={selectedAccountIds}
+              setSelectedAccountIds={setSelectedAccountIds}
+              selectedCategoryIds={selectedCategoryIds}
+              setSelectedCategoryIds={setSelectedCategoryIds}
               filterToday={filterToday}
               setFilterToday={setFilterToday}
               onToggleConsolidated={toggleConsolidated}
@@ -439,10 +443,10 @@ export default function App() {
               filteredTransactions={filteredTransactions}
               categories={categories}
               accounts={accounts}
-              selectedAccountId={selectedAccountId}
-              setSelectedAccountId={setSelectedAccountId}
-              selectedCategoryId={selectedCategoryId}
-              setSelectedCategoryId={setSelectedCategoryId}
+              selectedAccountIds={selectedAccountIds}
+              setSelectedAccountIds={setSelectedAccountIds}
+              selectedCategoryIds={selectedCategoryIds}
+              setSelectedCategoryIds={setSelectedCategoryIds}
               filterToday={filterToday}
               setFilterToday={setFilterToday}
               getPieData={getPieData}
