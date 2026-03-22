@@ -20,8 +20,8 @@ export interface UseTransactionCalculationsProps {
   accounts: Account[];
   categories: Category[];
   currentMonth: Date;
-  selectedAccountId: string | 'all';
-  selectedCategoryId: string | 'all';
+  selectedAccountIds: string[];
+  selectedCategoryIds: string[];
   filterToday: boolean;
   includePreviousBalance: boolean;
   transactionSortOrder: 'asc' | 'desc';
@@ -41,8 +41,8 @@ export function useTransactionCalculations({
   accounts,
   categories,
   currentMonth,
-  selectedAccountId,
-  selectedCategoryId,
+  selectedAccountIds,
+  selectedCategoryIds,
   filterToday,
   includePreviousBalance,
   transactionSortOrder,
@@ -53,12 +53,14 @@ export function useTransactionCalculations({
         const tDate = parseISO(t.date);
         const dateMatch = filterToday ? isToday(tDate) : isSameMonth(tDate, currentMonth);
         const accountMatch =
-          selectedAccountId === 'all' || t.accountId === selectedAccountId || t.toAccountId === selectedAccountId;
-        const categoryMatch = selectedCategoryId === 'all' || t.categoryId === selectedCategoryId;
+          selectedAccountIds.length === 0 ||
+          selectedAccountIds.includes(t.accountId) ||
+          (t.toAccountId && selectedAccountIds.includes(t.toAccountId));
+        const categoryMatch = selectedCategoryIds.length === 0 || selectedCategoryIds.includes(t.categoryId);
         return dateMatch && accountMatch && categoryMatch;
       })
       .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
-  }, [transactions, currentMonth, selectedAccountId, selectedCategoryId, filterToday]);
+  }, [transactions, currentMonth, selectedAccountIds, selectedCategoryIds, filterToday]);
 
   const totals = useMemo(() => {
     const income = filteredTransactions.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
@@ -67,11 +69,14 @@ export function useTransactionCalculations({
   }, [filteredTransactions]);
 
   const totalBalance = useMemo(() => {
-    if (selectedAccountId !== 'all') {
-      return accounts.find((a) => a.id === selectedAccountId)?.balance || 0;
+    if (selectedAccountIds.length === 1) {
+      return accounts.find((a) => a.id === selectedAccountIds[0])?.balance || 0;
+    }
+    if (selectedAccountIds.length > 1) {
+      return accounts.filter((a) => selectedAccountIds.includes(a.id)).reduce((acc, a) => acc + a.balance, 0);
     }
     return accounts.reduce((acc, a) => acc + a.balance, 0);
-  }, [accounts, selectedAccountId]);
+  }, [accounts, selectedAccountIds]);
 
   const upcomingTransactions = useMemo(() => {
     const today = startOfDay(new Date());
@@ -82,13 +87,15 @@ export function useTransactionCalculations({
       })
       .filter((t) => {
         const accountMatch =
-          selectedAccountId === 'all' || t.accountId === selectedAccountId || t.toAccountId === selectedAccountId;
-        const categoryMatch = selectedCategoryId === 'all' || t.categoryId === selectedCategoryId;
+          selectedAccountIds.length === 0 ||
+          selectedAccountIds.includes(t.accountId) ||
+          (t.toAccountId && selectedAccountIds.includes(t.toAccountId));
+        const categoryMatch = selectedCategoryIds.length === 0 || selectedCategoryIds.includes(t.categoryId);
         return accountMatch && categoryMatch;
       })
       .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
       .slice(0, 5);
-  }, [transactions, selectedAccountId, selectedCategoryId]);
+  }, [transactions, selectedAccountIds, selectedCategoryIds]);
 
   const transactionsByDay = useMemo(() => {
     const consolidatedSum = transactions.reduce((acc, t) => {
@@ -100,13 +107,16 @@ export function useTransactionCalculations({
       if (account && t.date < account.initialBalanceDate) return acc;
       if (t.type === 'transfer' && toAccount && t.date < toAccount.initialBalanceDate) return acc;
 
-      if (selectedAccountId !== 'all') {
+      if (selectedAccountIds.length > 0) {
         if (t.type === 'transfer') {
-          if (t.accountId === selectedAccountId) return acc - t.amount;
-          if (t.toAccountId === selectedAccountId) return acc + t.amount;
+          const isFromSelected = selectedAccountIds.includes(t.accountId);
+          const isToSelected = t.toAccountId && selectedAccountIds.includes(t.toAccountId);
+          if (isFromSelected && !isToSelected) return acc - t.amount;
+          if (!isFromSelected && isToSelected) return acc + t.amount;
+          if (isFromSelected && isToSelected) return acc;
           return acc;
         }
-        if (t.accountId !== selectedAccountId) return acc;
+        if (!selectedAccountIds.includes(t.accountId)) return acc;
       } else if (t.type === 'transfer') return acc;
 
       if (t.type === 'income') return acc + t.amount;
@@ -124,7 +134,9 @@ export function useTransactionCalculations({
       .filter((t) => {
         const tDate = parseISO(t.date);
         const accountMatch =
-          selectedAccountId === 'all' || t.accountId === selectedAccountId || t.toAccountId === selectedAccountId;
+          selectedAccountIds.length === 0 ||
+          selectedAccountIds.includes(t.accountId) ||
+          (t.toAccountId && selectedAccountIds.includes(t.toAccountId));
 
         const account = accounts.find((a) => a.id === t.accountId);
         const toAccount = t.toAccountId ? accounts.find((a) => a.id === t.toAccountId) : null;
@@ -137,9 +149,11 @@ export function useTransactionCalculations({
         if (t.type === 'income') runningBalance += t.amount;
         else if (t.type === 'expense') runningBalance -= t.amount;
         else if (t.type === 'transfer') {
-          if (selectedAccountId !== 'all') {
-            if (t.accountId === selectedAccountId) runningBalance -= t.amount;
-            else if (t.toAccountId === selectedAccountId) runningBalance += t.amount;
+          if (selectedAccountIds.length > 0) {
+            const isFromSelected = selectedAccountIds.includes(t.accountId);
+            const isToSelected = t.toAccountId && selectedAccountIds.includes(t.toAccountId);
+            if (isFromSelected && !isToSelected) runningBalance -= t.amount;
+            else if (!isFromSelected && isToSelected) runningBalance += t.amount;
           }
         }
       });
@@ -149,7 +163,9 @@ export function useTransactionCalculations({
     const inViewTransactions = allSorted.filter((t) => {
       const tDate = parseISO(t.date);
       const accountMatch =
-        selectedAccountId === 'all' || t.accountId === selectedAccountId || t.toAccountId === selectedAccountId;
+        selectedAccountIds.length === 0 ||
+        selectedAccountIds.includes(t.accountId) ||
+        (t.toAccountId && selectedAccountIds.includes(t.toAccountId));
 
       const account = accounts.find((a) => a.id === t.accountId);
       const toAccount = t.toAccountId ? accounts.find((a) => a.id === t.toAccountId) : null;
@@ -167,15 +183,17 @@ export function useTransactionCalculations({
       if (t.type === 'income') amount = t.amount;
       else if (t.type === 'expense') amount = -t.amount;
       else if (t.type === 'transfer') {
-        if (selectedAccountId !== 'all') {
-          if (t.accountId === selectedAccountId) amount = -t.amount;
-          else if (t.toAccountId === selectedAccountId) amount = t.amount;
+        if (selectedAccountIds.length > 0) {
+          const isFromSelected = selectedAccountIds.includes(t.accountId);
+          const isToSelected = t.toAccountId && selectedAccountIds.includes(t.toAccountId);
+          if (isFromSelected && !isToSelected) amount = -t.amount;
+          else if (!isFromSelected && isToSelected) amount = t.amount;
         }
       }
 
       runningBalance += amount;
 
-      const categoryMatch = selectedCategoryId === 'all' || t.categoryId === selectedCategoryId;
+      const categoryMatch = selectedCategoryIds.length === 0 || selectedCategoryIds.includes(t.categoryId);
       if (categoryMatch) {
         const dateStr = t.date;
         let group = groups.find((g) => g.date === dateStr);
@@ -200,8 +218,8 @@ export function useTransactionCalculations({
     includePreviousBalance,
     currentMonth,
     filterToday,
-    selectedAccountId,
-    selectedCategoryId,
+    selectedAccountIds,
+    selectedCategoryIds,
     totalBalance,
     transactionSortOrder,
   ]);
