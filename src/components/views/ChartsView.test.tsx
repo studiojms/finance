@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChartsView } from './ChartsView';
 import { Account, Transaction, Category } from '../../types';
@@ -96,8 +96,8 @@ describe('ChartsView', () => {
     return Object.entries(data).map(([name, info]) => ({ name, ...info }));
   };
 
-  const mockSetSelectedAccountId = vi.fn();
-  const mockSetSelectedCategoryId = vi.fn();
+  const mockSetSelectedAccountIds = vi.fn();
+  const mockSetSelectedCategoryIds = vi.fn();
   const mockSetFilterToday = vi.fn();
 
   afterEach(() => {
@@ -110,10 +110,10 @@ describe('ChartsView', () => {
         filteredTransactions={mockTransactions}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}
@@ -129,10 +129,10 @@ describe('ChartsView', () => {
         filteredTransactions={mockTransactions}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}
@@ -148,10 +148,10 @@ describe('ChartsView', () => {
         filteredTransactions={mockTransactions}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}
@@ -169,10 +169,10 @@ describe('ChartsView', () => {
         filteredTransactions={mockTransactions}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}
@@ -189,10 +189,10 @@ describe('ChartsView', () => {
         filteredTransactions={mockTransactions}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}
@@ -216,10 +216,10 @@ describe('ChartsView', () => {
         filteredTransactions={incomeOnlyTransactions}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}
@@ -236,20 +236,22 @@ describe('ChartsView', () => {
         filteredTransactions={mockTransactions}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}
       />
     );
 
-    const accountSelect = screen.getAllByRole('combobox')[0];
-    await user.selectOptions(accountSelect, 'acc1');
+    const accountDropdown = screen.getByText('Todas Contas');
+    await user.click(accountDropdown);
+    const accountOption = screen.getByText('Conta Corrente');
+    await user.click(accountOption);
 
-    expect(mockSetSelectedAccountId).toHaveBeenCalledWith('acc1');
+    expect(mockSetSelectedAccountIds).toHaveBeenCalledWith(['acc1']);
   });
 
   it('filters transactions by category', async () => {
@@ -259,20 +261,27 @@ describe('ChartsView', () => {
         filteredTransactions={mockTransactions}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}
       />
     );
 
-    const categorySelect = screen.getAllByRole('combobox')[1];
-    await user.selectOptions(categorySelect, 'cat1');
+    const categoryDropdown = screen.getByText('Todas Categorias');
+    await user.click(categoryDropdown);
 
-    expect(mockSetSelectedCategoryId).toHaveBeenCalledWith('cat1');
+    const categoryButtons = screen.getAllByRole('button');
+    const alimentacaoButton = categoryButtons.find(
+      (btn) => btn.textContent?.includes('Alimentação') && btn.className.includes('w-full')
+    );
+    expect(alimentacaoButton).toBeTruthy();
+    await user.click(alimentacaoButton!);
+
+    expect(mockSetSelectedCategoryIds).toHaveBeenCalledWith(['cat1']);
   });
 
   it('toggles today filter', async () => {
@@ -282,10 +291,10 @@ describe('ChartsView', () => {
         filteredTransactions={mockTransactions}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}
@@ -304,10 +313,10 @@ describe('ChartsView', () => {
         filteredTransactions={mockTransactions}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}
@@ -342,10 +351,10 @@ describe('ChartsView', () => {
         filteredTransactions={transactionsWithDuplicates}
         categories={mockCategories}
         accounts={mockAccounts}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
         getPieData={mockGetPieData}

@@ -97,8 +97,8 @@ describe('useTransactionCalculations', () => {
     accounts: mockAccounts,
     categories: mockCategories,
     currentMonth: new Date('2026-03-15'),
-    selectedAccountId: 'all' as const,
-    selectedCategoryId: 'all' as const,
+    selectedAccountIds: [] as string[],
+    selectedCategoryIds: [] as string[],
     filterToday: false,
     includePreviousBalance: true,
     transactionSortOrder: 'desc' as const,
@@ -116,7 +116,7 @@ describe('useTransactionCalculations', () => {
       const { result } = renderHook(() =>
         useTransactionCalculations({
           ...defaultProps,
-          selectedAccountId: 'acc1',
+          selectedAccountIds: ['acc1'],
         })
       );
 
@@ -128,7 +128,7 @@ describe('useTransactionCalculations', () => {
       const { result } = renderHook(() =>
         useTransactionCalculations({
           ...defaultProps,
-          selectedCategoryId: 'cat1',
+          selectedCategoryIds: ['cat1'],
         })
       );
 
@@ -230,7 +230,7 @@ describe('useTransactionCalculations', () => {
   });
 
   describe('totalBalance', () => {
-    it('should sum all account balances when selectedAccountId is all', () => {
+    it('should sum all account balances when selectedAccountIds is empty', () => {
       const { result } = renderHook(() => useTransactionCalculations(defaultProps));
 
       expect(result.current.totalBalance).toBe(3000);
@@ -240,7 +240,7 @@ describe('useTransactionCalculations', () => {
       const { result } = renderHook(() =>
         useTransactionCalculations({
           ...defaultProps,
-          selectedAccountId: 'acc1',
+          selectedAccountIds: ['acc1'],
         })
       );
 
@@ -251,7 +251,7 @@ describe('useTransactionCalculations', () => {
       const { result } = renderHook(() =>
         useTransactionCalculations({
           ...defaultProps,
-          selectedAccountId: 'nonexistent',
+          selectedAccountIds: ['nonexistent'],
         })
       );
 
@@ -348,7 +348,7 @@ describe('useTransactionCalculations', () => {
         useTransactionCalculations({
           ...defaultProps,
           transactions: [...mockTransactions, futureTransaction],
-          selectedAccountId: 'acc1',
+          selectedAccountIds: ['acc1'],
         })
       );
 

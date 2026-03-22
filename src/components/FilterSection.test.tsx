@@ -35,8 +35,8 @@ describe('FilterSection', () => {
   ];
 
   const mockSetFilterToday = vi.fn();
-  const mockSetSelectedAccountId = vi.fn();
-  const mockSetSelectedCategoryId = vi.fn();
+  const mockSetSelectedAccountIds = vi.fn();
+  const mockSetSelectedCategoryIds = vi.fn();
 
   afterEach(() => {
     vi.clearAllMocks();
@@ -48,10 +48,10 @@ describe('FilterSection', () => {
         title="Transações"
         filterToday={false}
         setFilterToday={mockSetFilterToday}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         accounts={mockAccounts}
         categories={mockCategories}
       />
@@ -67,10 +67,10 @@ describe('FilterSection', () => {
         title="Transações"
         filterToday={false}
         setFilterToday={mockSetFilterToday}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         accounts={mockAccounts}
         categories={mockCategories}
       />
@@ -81,128 +81,213 @@ describe('FilterSection', () => {
     expect(mockSetFilterToday).toHaveBeenCalledWith(true);
   });
 
-  it('renders all accounts in select', () => {
+  it('shows placeholder text when no accounts are selected', () => {
     render(
       <FilterSection
         title="Transações"
         filterToday={false}
         setFilterToday={mockSetFilterToday}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         accounts={mockAccounts}
         categories={mockCategories}
       />
     );
 
     expect(screen.getByText('Todas Contas')).toBeInTheDocument();
-    expect(screen.getByText('Conta Corrente')).toBeInTheDocument();
-    expect(screen.getByText('Poupança')).toBeInTheDocument();
   });
 
-  it('renders all categories in select', () => {
+  it('shows count when accounts are selected', () => {
     render(
       <FilterSection
         title="Transações"
         filterToday={false}
         setFilterToday={mockSetFilterToday}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={['1']}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         accounts={mockAccounts}
         categories={mockCategories}
       />
     );
 
-    expect(screen.getByText('Todas Categorias')).toBeInTheDocument();
-    expect(screen.getByText('Alimentação')).toBeInTheDocument();
-    expect(screen.getByText('Transporte')).toBeInTheDocument();
+    expect(screen.getByText('1 selecionado')).toBeInTheDocument();
+  });
+
+  it('opens account dropdown and shows all accounts', async () => {
+    const user = userEvent.setup();
+    render(
+      <FilterSection
+        title="Transações"
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        accounts={mockAccounts}
+        categories={mockCategories}
+      />
+    );
+
+    await user.click(screen.getByText('Todas Contas'));
+
+    expect(screen.getByText('Conta Corrente')).toBeVisible();
+    expect(screen.getByText('Poupança')).toBeVisible();
+  });
+
+  it('selects an account when clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <FilterSection
+        title="Transações"
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        accounts={mockAccounts}
+        categories={mockCategories}
+      />
+    );
+
+    await user.click(screen.getByText('Todas Contas'));
+    await user.click(screen.getByText('Conta Corrente'));
+
+    expect(mockSetSelectedAccountIds).toHaveBeenCalledWith(['1']);
+  });
+
+  it('deselects an account when clicked again', async () => {
+    const user = userEvent.setup();
+    render(
+      <FilterSection
+        title="Transações"
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        selectedAccountIds={['1']}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        accounts={mockAccounts}
+        categories={mockCategories}
+      />
+    );
+
+    await user.click(screen.getByText('1 selecionado'));
+    await user.click(screen.getByText('Conta Corrente'));
+
+    expect(mockSetSelectedAccountIds).toHaveBeenCalledWith([]);
+  });
+
+  it('selects all accounts when "Todos" is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <FilterSection
+        title="Transações"
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        accounts={mockAccounts}
+        categories={mockCategories}
+      />
+    );
+
+    await user.click(screen.getByText('Todas Contas'));
+    await user.click(screen.getAllByText('Todos')[0]);
+
+    expect(mockSetSelectedAccountIds).toHaveBeenCalledWith(['1', '2']);
+  });
+
+  it('clears all selections when "Limpar" in dropdown is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <FilterSection
+        title="Transações"
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        selectedAccountIds={['1']}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        accounts={mockAccounts}
+        categories={mockCategories}
+      />
+    );
+
+    await user.click(screen.getByText('1 selecionado'));
+    await user.click(screen.getAllByText('Limpar')[0]);
+
+    expect(mockSetSelectedAccountIds).toHaveBeenCalledWith([]);
   });
 
   it('shows clear button when filters are active', () => {
     render(
       <FilterSection
         title="Transações"
-        filterToday={true}
+        filterToday={false}
         setFilterToday={mockSetFilterToday}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={['1']}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         accounts={mockAccounts}
         categories={mockCategories}
       />
     );
 
-    expect(screen.getByText('Limpar')).toBeInTheDocument();
+    expect(screen.getAllByText('Limpar').length).toBeGreaterThan(0);
   });
 
-  it('clears all filters when clear button is clicked', async () => {
+  it('clears all filters when main clear button is clicked', async () => {
     const user = userEvent.setup();
     render(
       <FilterSection
         title="Transações"
         filterToday={true}
         setFilterToday={mockSetFilterToday}
-        selectedAccountId="1"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="1"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={['1']}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={['1']}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         accounts={mockAccounts}
         categories={mockCategories}
       />
     );
 
-    await user.click(screen.getByText('Limpar'));
+    const clearButtons = screen.getAllByText('Limpar');
+    await user.click(clearButtons[clearButtons.length - 1]);
 
-    expect(mockSetSelectedAccountId).toHaveBeenCalledWith('all');
-    expect(mockSetSelectedCategoryId).toHaveBeenCalledWith('all');
+    expect(mockSetSelectedAccountIds).toHaveBeenCalledWith([]);
+    expect(mockSetSelectedCategoryIds).toHaveBeenCalledWith([]);
     expect(mockSetFilterToday).toHaveBeenCalledWith(false);
   });
 
-  it('changes account selection', async () => {
+  it('works with category selection', async () => {
     const user = userEvent.setup();
     render(
       <FilterSection
         title="Transações"
         filterToday={false}
         setFilterToday={mockSetFilterToday}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
         accounts={mockAccounts}
         categories={mockCategories}
       />
     );
 
-    const accountSelect = screen.getAllByRole('combobox')[0];
-    await user.selectOptions(accountSelect, '1');
+    await user.click(screen.getByText('Todas Categorias'));
+    await user.click(screen.getByText('Alimentação'));
 
-    expect(mockSetSelectedAccountId).toHaveBeenCalledWith('1');
-  });
-
-  it('changes category selection', async () => {
-    const user = userEvent.setup();
-    render(
-      <FilterSection
-        title="Transações"
-        filterToday={false}
-        setFilterToday={mockSetFilterToday}
-        selectedAccountId="all"
-        setSelectedAccountId={mockSetSelectedAccountId}
-        selectedCategoryId="all"
-        setSelectedCategoryId={mockSetSelectedCategoryId}
-        accounts={mockAccounts}
-        categories={mockCategories}
-      />
-    );
-
-    const categorySelect = screen.getAllByRole('combobox')[1];
-    await user.selectOptions(categorySelect, '1');
-
-    expect(mockSetSelectedCategoryId).toHaveBeenCalledWith('1');
+    expect(mockSetSelectedCategoryIds).toHaveBeenCalledWith(['1']);
   });
 });
