@@ -17,10 +17,10 @@ interface TransactionsViewProps {
   }[];
   categories: Category[];
   accounts: Account[];
-  selectedAccountId: string | 'all';
-  setSelectedAccountId: (id: string | 'all') => void;
-  selectedCategoryId: string | 'all';
-  setSelectedCategoryId: (id: string | 'all') => void;
+  selectedAccountIds: string[];
+  setSelectedAccountIds: (ids: string[]) => void;
+  selectedCategoryIds: string[];
+  setSelectedCategoryIds: (ids: string[]) => void;
   filterToday: boolean;
   setFilterToday: (val: boolean) => void;
   onToggleConsolidated: (t: Transaction) => void;
@@ -32,10 +32,10 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   transactionsByDay,
   categories,
   accounts,
-  selectedAccountId,
-  setSelectedAccountId,
-  selectedCategoryId,
-  setSelectedCategoryId,
+  selectedAccountIds,
+  setSelectedAccountIds,
+  selectedCategoryIds,
+  setSelectedCategoryIds,
   filterToday,
   setFilterToday,
   onToggleConsolidated,
@@ -54,10 +54,10 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         title="Extrato"
         filterToday={filterToday}
         setFilterToday={setFilterToday}
-        selectedAccountId={selectedAccountId}
-        setSelectedAccountId={setSelectedAccountId}
-        selectedCategoryId={selectedCategoryId}
-        setSelectedCategoryId={setSelectedCategoryId}
+        selectedAccountIds={selectedAccountIds}
+        setSelectedAccountIds={setSelectedAccountIds}
+        selectedCategoryIds={selectedCategoryIds}
+        setSelectedCategoryIds={setSelectedCategoryIds}
         accounts={accounts}
         categories={categories}
       />

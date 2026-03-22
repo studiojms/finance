@@ -15,10 +15,10 @@ interface DashboardViewProps {
   upcomingTransactions: Transaction[];
   totals: { income: number; expense: number; balance: number };
   totalBalance: number;
-  selectedAccountId: string | 'all';
-  setSelectedAccountId: (id: string | 'all') => void;
-  selectedCategoryId: string | 'all';
-  setSelectedCategoryId: (id: string | 'all') => void;
+  selectedAccountIds: string[];
+  setSelectedAccountIds: (ids: string[]) => void;
+  selectedCategoryIds: string[];
+  setSelectedCategoryIds: (ids: string[]) => void;
   filterToday: boolean;
   setFilterToday: (val: boolean) => void;
   onToggleConsolidated: (t: Transaction) => void;
@@ -33,10 +33,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   filteredTransactions,
   upcomingTransactions,
   totals,
-  selectedAccountId,
-  setSelectedAccountId,
-  selectedCategoryId,
-  setSelectedCategoryId,
+  selectedAccountIds,
+  setSelectedAccountIds,
+  selectedCategoryIds,
+  setSelectedCategoryIds,
   filterToday,
   setFilterToday,
   onToggleConsolidated,
@@ -45,21 +45,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   setActiveTab,
 }) => {
   return (
-    <motion.div 
+    <motion.div
       key="dashboard"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className="space-y-6"
     >
-      <FilterSection 
-        title="Visão Geral" 
+      <FilterSection
+        title="Visão Geral"
         filterToday={filterToday}
         setFilterToday={setFilterToday}
-        selectedAccountId={selectedAccountId}
-        setSelectedAccountId={setSelectedAccountId}
-        selectedCategoryId={selectedCategoryId}
-        setSelectedCategoryId={setSelectedCategoryId}
+        selectedAccountIds={selectedAccountIds}
+        setSelectedAccountIds={setSelectedAccountIds}
+        selectedCategoryIds={selectedCategoryIds}
+        setSelectedCategoryIds={setSelectedCategoryIds}
         accounts={accounts}
         categories={categories}
       />
@@ -86,24 +86,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <section>
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold text-slate-800">Minhas Contas</h3>
-          <button onClick={() => setActiveTab('accounts')} className="text-emerald-600 text-sm font-bold">Ver todas</button>
+          <button onClick={() => setActiveTab('accounts')} className="text-emerald-600 text-sm font-bold">
+            Ver todas
+          </button>
         </div>
         <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
-          {(selectedAccountId === 'all' ? accounts : accounts.filter(a => a.id === selectedAccountId)).map(account => (
-            <div 
-              key={account.id}
-              className="min-w-[160px] p-4 rounded-3xl text-white shadow-md"
-              style={{ backgroundColor: account.color }}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <IconRenderer iconName={account.icon || (account.type === 'credit_card' ? 'CreditCard' : 'Banknote')} size={20} />
+          {(selectedAccountIds.length === 0 ? accounts : accounts.filter((a) => selectedAccountIds.includes(a.id))).map(
+            (account) => (
+              <div
+                key={account.id}
+                className="min-w-[160px] p-4 rounded-3xl text-white shadow-md"
+                style={{ backgroundColor: account.color }}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <IconRenderer
+                    iconName={account.icon || (account.type === 'credit_card' ? 'CreditCard' : 'Banknote')}
+                    size={20}
+                  />
+                </div>
+                <p className="text-xs opacity-80 mb-1">{account.name}</p>
+                <p className="font-bold text-lg">{formatCurrency(account.balance)}</p>
               </div>
-              <p className="text-xs opacity-80 mb-1">{account.name}</p>
-              <p className="font-bold text-lg">{formatCurrency(account.balance)}</p>
-            </div>
-          ))}
+            )
+          )}
           {accounts.length === 0 && (
-            <button 
+            <button
               onClick={() => setActiveTab('accounts')}
               className="min-w-[160px] p-4 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2"
             >
@@ -118,15 +125,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <section>
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold text-slate-800">Lançamentos Recentes</h3>
-          <button onClick={() => setActiveTab('transactions')} className="text-emerald-600 text-sm font-bold">Ver extrato</button>
+          <button onClick={() => setActiveTab('transactions')} className="text-emerald-600 text-sm font-bold">
+            Ver extrato
+          </button>
         </div>
         <div className="space-y-3">
-          {filteredTransactions.slice(0, 5).map(t => (
-            <TransactionItem 
-              key={t.id} 
-              transaction={t} 
-              category={categories.find(c => c.id === t.categoryId)}
-              account={accounts.find(a => a.id === t.accountId)}
+          {filteredTransactions.slice(0, 5).map((t) => (
+            <TransactionItem
+              key={t.id}
+              transaction={t}
+              category={categories.find((c) => c.id === t.categoryId)}
+              account={accounts.find((a) => a.id === t.accountId)}
               onToggle={() => onToggleConsolidated(t)}
               onEdit={() => onEditTransaction(t)}
               onDelete={() => onDeleteTransaction(t)}
@@ -148,12 +157,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Próximos dias</span>
         </div>
         <div className="space-y-3">
-          {upcomingTransactions.map(t => (
-            <TransactionItem 
-              key={t.id} 
-              transaction={t} 
-              category={categories.find(c => c.id === t.categoryId)}
-              account={accounts.find(a => a.id === t.accountId)}
+          {upcomingTransactions.map((t) => (
+            <TransactionItem
+              key={t.id}
+              transaction={t}
+              category={categories.find((c) => c.id === t.categoryId)}
+              account={accounts.find((a) => a.id === t.accountId)}
               onToggle={() => onToggleConsolidated(t)}
               onEdit={() => onEditTransaction(t)}
               onDelete={() => onDeleteTransaction(t)}

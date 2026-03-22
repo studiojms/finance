@@ -1,13 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { PieChart as PieChartIcon } from 'lucide-react';
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
-  Tooltip 
-} from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { FilterSection } from '../FilterSection';
 import { formatCurrency } from '../../utils';
 import { Account, Transaction, Category } from '../../types';
@@ -16,10 +10,10 @@ interface ChartsViewProps {
   filteredTransactions: Transaction[];
   categories: Category[];
   accounts: Account[];
-  selectedAccountId: string | 'all';
-  setSelectedAccountId: (id: string | 'all') => void;
-  selectedCategoryId: string | 'all';
-  setSelectedCategoryId: (id: string | 'all') => void;
+  selectedAccountIds: string[];
+  setSelectedAccountIds: (ids: string[]) => void;
+  selectedCategoryIds: string[];
+  setSelectedCategoryIds: (ids: string[]) => void;
   filterToday: boolean;
   setFilterToday: (val: boolean) => void;
   getPieData: (transactions: Transaction[], categories: Category[]) => any[];
@@ -29,10 +23,10 @@ export const ChartsView: React.FC<ChartsViewProps> = ({
   filteredTransactions,
   categories,
   accounts,
-  selectedAccountId,
-  setSelectedAccountId,
-  selectedCategoryId,
-  setSelectedCategoryId,
+  selectedAccountIds,
+  setSelectedAccountIds,
+  selectedCategoryIds,
+  setSelectedCategoryIds,
   filterToday,
   setFilterToday,
   getPieData,
@@ -40,28 +34,28 @@ export const ChartsView: React.FC<ChartsViewProps> = ({
   const pieData = getPieData(filteredTransactions, categories);
 
   return (
-    <motion.div 
+    <motion.div
       key="charts"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6"
     >
-      <FilterSection 
-        title="Análise Mensal" 
+      <FilterSection
+        title="Análise Mensal"
         filterToday={filterToday}
         setFilterToday={setFilterToday}
-        selectedAccountId={selectedAccountId}
-        setSelectedAccountId={setSelectedAccountId}
-        selectedCategoryId={selectedCategoryId}
-        setSelectedCategoryId={setSelectedCategoryId}
+        selectedAccountIds={selectedAccountIds}
+        setSelectedAccountIds={setSelectedAccountIds}
+        selectedCategoryIds={selectedCategoryIds}
+        setSelectedCategoryIds={setSelectedCategoryIds}
         accounts={accounts}
         categories={categories}
       />
-      
+
       <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
         <h3 className="text-sm font-bold text-slate-500 uppercase mb-4">Despesas por Categoria</h3>
-        
+
         {pieData.length > 0 ? (
           <>
             <div className="h-64">
@@ -85,7 +79,7 @@ export const ChartsView: React.FC<ChartsViewProps> = ({
               </ResponsiveContainer>
             </div>
             <div className="mt-4 space-y-2">
-              {pieData.map(item => (
+              {pieData.map((item) => (
                 <div key={item.name} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
