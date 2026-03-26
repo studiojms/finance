@@ -32,6 +32,7 @@ import { ManageView } from './components/views/ManageView';
 import { ChartsView } from './components/views/ChartsView';
 import { DataView } from './components/views/DataView';
 import { CategoryModal } from './components/modals/CategoryModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { useAuth } from './hooks/useAuth';
 import { useFirestoreData } from './hooks/useFirestoreData';
 import { useTransactionOperations } from './hooks/useTransactionOperations';
@@ -551,6 +552,9 @@ export default function App() {
         onConfirm={modalState.installmentDeleteModal.onConfirm}
         onClose={modalState.closeInstallmentDelete}
       />
+
+      {/* Offline Indicator */}
+      <OfflineIndicator />
     </div>
   );
 }
