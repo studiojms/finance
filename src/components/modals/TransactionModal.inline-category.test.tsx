@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TransactionModal } from './TransactionModal';
 import { Account, Category, Transaction } from '../../types';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc } from 'firebase/firestore';
 
 vi.mock('firebase/firestore', () => ({
   addDoc: vi.fn(),

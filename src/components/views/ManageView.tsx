@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '../../utils';
-import { Account, Category, Transaction } from '../../types';
+import { Account, Category } from '../../types';
 import { AccountsView } from './AccountsView';
 import { CategoriesView } from './CategoriesView';
 

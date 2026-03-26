@@ -2,8 +2,7 @@
  * OfflineIndicator Component - Shows offline/sync status
  */
 
-import React from 'react';
-import { WifiOff, Wifi, RefreshCw, CloudOff, Cloud, CheckCircle2 } from 'lucide-react';
+import { WifiOff, RefreshCw, CloudOff } from 'lucide-react';
 import { useOffline } from '../hooks/useOffline';
 
 export function OfflineIndicator() {

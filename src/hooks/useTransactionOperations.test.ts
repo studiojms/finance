@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useTransactionOperations } from './useTransactionOperations';
 import { Transaction } from '../types';
-import { db } from '../firebase';
 
 vi.mock('../firebase', () => ({
   db: {},

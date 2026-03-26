@@ -1,5 +1,4 @@
 import { User as FirebaseUser } from 'firebase/auth';
-import { User as SupabaseUser } from '@supabase/supabase-js';
 import { isFirebase, isSupabase } from '../config';
 import { auth as firebaseAuth } from '../firebase';
 import { supabase } from '../supabase';

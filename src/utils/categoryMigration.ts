@@ -1,6 +1,5 @@
 import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Category } from '../types';
 
 const DEFAULT_COLORS = [
   '#ef4444',

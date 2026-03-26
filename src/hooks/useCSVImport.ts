@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { writeBatch, doc, collection, increment } from 'firebase/firestore';
 import { db } from '../firebase';
 import { CSVService } from '../services/csvService';
-import { Account, Category, Transaction } from '../types';
+import { Account, Category } from '../types';
 import { format } from 'date-fns';
 import { handleFirestoreError } from '../services/errorService';
 

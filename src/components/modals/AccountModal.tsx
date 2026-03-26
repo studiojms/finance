@@ -1,17 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'motion/react';
-import {
-  X,
-  Banknote,
-  CreditCard,
-  Wallet,
-  Landmark,
-  PiggyBank,
-  Briefcase,
-  Coins,
-  Receipt,
-  CreditCard as CardIcon,
-} from 'lucide-react';
+import { X, Banknote, CreditCard, Wallet, Landmark, PiggyBank, Briefcase, Coins, Receipt } from 'lucide-react';
 import { format, parseISO, isAfter, isEqual } from 'date-fns';
 import { doc, collection, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase';

@@ -1,66 +1,30 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
 import {
   LayoutDashboard,
   ArrowUpCircle,
-  ArrowDownCircle,
   Wallet,
   PieChart as PieChartIcon,
   Plus,
-  Filter,
   ChevronLeft,
   ChevronRight,
-  MoreVertical,
-  CheckCircle2,
-  Circle,
   LogOut,
-  Trash2,
-  Edit2,
   X,
-  CreditCard,
-  Banknote,
-  TrendingUp,
-  Calendar,
-  Download,
-  Upload,
   Database,
-  Settings,
-  User as UserIcon,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import {
-  format,
-  addDays,
-  addWeeks,
-  addMonths,
-  addYears,
-  startOfMonth,
-  endOfMonth,
-  isSameMonth,
-  isToday,
-  parseISO,
-  subMonths,
-  isAfter,
-  isEqual,
-  isSameDay,
-  startOfDay,
-} from 'date-fns';
+import { AnimatePresence } from 'motion/react';
+import { format, addMonths, isToday, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { formatCurrency, cn, getPieData } from './utils';
-import { Account, Transaction, Category, TransactionType } from './types';
-import { handleFirestoreError } from './services/errorService';
-import { DEFAULT_CATEGORIES } from './constants';
+import { Transaction } from './types';
 import { AccountModal } from './components/modals/AccountModal';
 import { TransactionModal } from './components/modals/TransactionModal';
-import { TransactionItem } from './components/TransactionItem';
 import { NavButton } from './components/NavButton';
 import { ConfirmationModal } from './components/modals/ConfirmationModal';
 import { InstallmentDeleteModal } from './components/modals/InstallmentDeleteModal';
 import { QuickActionPopup } from './components/QuickActionPopup';
 import { UserSettingsModal } from './components/modals/UserSettingsModal';
-import { FilterSection } from './components/FilterSection';
 import { Login } from './components/Login';
 import { DashboardView } from './components/views/DashboardView';
 import { TransactionsView } from './components/views/TransactionsView';
@@ -75,7 +39,6 @@ import { useCSVImport } from './hooks/useCSVImport';
 import { useTransactionCalculations } from './hooks/useTransactionCalculations';
 import { useModalState } from './hooks/useModalState';
 import { CSVService } from './services/csvService';
-import { AuthUser } from './services/authService';
 import { APP_CONFIG } from './config';
 
 // --- Components ---

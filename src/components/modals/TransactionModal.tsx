@@ -19,13 +19,12 @@ import {
   Smartphone,
   DollarSign,
 } from 'lucide-react';
-import { format, addDays, addWeeks, addMonths, addYears, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { doc, collection, addDoc, updateDoc, writeBatch, query, where, getDocs, increment } from 'firebase/firestore';
+import { format, addDays, addWeeks, addMonths, addYears } from 'date-fns';
+import { doc, collection, addDoc, writeBatch, query, where, getDocs, increment } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Account, Transaction, Category, TransactionType } from '../../types';
 import { handleFirestoreError } from '../../services/errorService';
-import { formatCurrency, cn } from '../../utils';
+import { cn } from '../../utils';
 
 const CATEGORY_ICONS = [
   { id: 'Tag', icon: Tag },

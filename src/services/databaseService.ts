@@ -9,11 +9,7 @@ import {
   doc,
   getDoc,
   getDocs,
-  writeBatch,
-  orderBy,
   Timestamp,
-  increment,
-  DocumentData,
 } from 'firebase/firestore';
 import { db as firebaseDb } from '../firebase';
 import { supabase } from '../supabase';
