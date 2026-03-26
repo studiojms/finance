@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SyncService } from './syncService';
 import { LocalStorageService } from './localStorageService';
 import { ConnectionService } from './connectionService';

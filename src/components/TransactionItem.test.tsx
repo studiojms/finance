@@ -240,7 +240,7 @@ describe('TransactionItem', () => {
   });
 
   it('displays "Transferência" for transfer type', () => {
-    const transferTransaction = { ...mockTransaction, type: 'transfer' as const };
+    const transferTransaction = { ...mockTransaction, type: 'transfer' as const, categoryId: 'transfer' };
     render(
       <TransactionItem
         transaction={transferTransaction}

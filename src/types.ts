@@ -37,6 +37,7 @@ export interface Transaction {
   totalInstallments?: number | null;
   toAccountId?: string;
   frequency?: string | null;
+  transferId?: string;
 }
 
 export interface FirestoreErrorInfo {

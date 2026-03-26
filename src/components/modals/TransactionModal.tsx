@@ -204,7 +204,9 @@ export function TransactionModal({
 
   const handleSave = async () => {
     const numericAmount = parseFloat(amount) / 100;
-    if (!description || numericAmount <= 0 || !accountId || (type === 'transfer' && !toAccountId)) return;
+    if (!description || !accountId || (type === 'transfer' && !toAccountId)) return;
+    if (type === 'transfer' && numericAmount <= 0) return;
+    if (type !== 'transfer' && numericAmount <= 0) return;
     if (isSaving) return;
 
     setIsSaving(true);
@@ -249,33 +251,71 @@ export function TransactionModal({
         if (!t.isConsolidated && (!oldT || !oldT.isConsolidated)) return;
 
         if (isNew) {
-          if (t.type === 'transfer') {
-            batch.update(doc(db, 'accounts', t.accountId), { balance: increment(-t.amount) });
-            batch.update(doc(db, 'accounts', t.toAccountId), { balance: increment(t.amount) });
-          } else {
+          const diff = t.type === 'income' ? t.amount : -t.amount;
+          batch.update(doc(db, 'accounts', t.accountId), { balance: increment(diff) });
+        } else if (oldT) {
+          if (oldT.isConsolidated) {
+            const diff = oldT.type === 'income' ? -oldT.amount : oldT.amount;
+            batch.update(doc(db, 'accounts', oldT.accountId), { balance: increment(diff) });
+          }
+          if (t.isConsolidated) {
             const diff = t.type === 'income' ? t.amount : -t.amount;
             batch.update(doc(db, 'accounts', t.accountId), { balance: increment(diff) });
           }
-        } else if (oldT) {
-          if (oldT.isConsolidated) {
-            if (oldT.type === 'transfer') {
-              batch.update(doc(db, 'accounts', oldT.accountId), { balance: increment(oldT.amount) });
-              batch.update(doc(db, 'accounts', oldT.toAccountId!), { balance: increment(-oldT.amount) });
-            } else {
-              const diff = oldT.type === 'income' ? -oldT.amount : oldT.amount;
-              batch.update(doc(db, 'accounts', oldT.accountId), { balance: increment(diff) });
-            }
-          }
-          if (t.isConsolidated) {
-            if (t.type === 'transfer') {
-              batch.update(doc(db, 'accounts', t.accountId), { balance: increment(-t.amount) });
-              batch.update(doc(db, 'accounts', t.toAccountId), { balance: increment(t.amount) });
-            } else {
-              const diff = t.type === 'income' ? t.amount : -t.amount;
-              batch.update(doc(db, 'accounts', t.accountId), { balance: increment(diff) });
-            }
-          }
         }
+      };
+
+      const createTransferPair = (
+        desc: string,
+        amt: number,
+        dt: string,
+        fromAcct: string,
+        toAcct: string,
+        consolidated: boolean,
+        instId?: string,
+        instNum?: number,
+        totalInst?: number | null,
+        freq?: string | null
+      ) => {
+        const transferId = crypto.randomUUID();
+
+        const expenseRef = doc(collection(db, 'transactions'));
+        const expenseTransaction = {
+          description: desc,
+          amount: amt,
+          date: dt,
+          accountId: fromAcct,
+          categoryId: 'transfer',
+          type: 'expense' as TransactionType,
+          isConsolidated: consolidated,
+          userId,
+          transferId,
+          installmentId: instId,
+          installmentNumber: instNum,
+          totalInstallments: totalInst,
+          frequency: freq,
+        };
+        batch.set(expenseRef, expenseTransaction);
+        updateBalance(expenseTransaction, true);
+
+        const incomeRef = doc(collection(db, 'transactions'));
+        const incomeTransaction = {
+          description: desc,
+          amount: amt,
+          date: dt,
+          accountId: toAcct,
+          categoryId: 'transfer',
+          type: 'income' as TransactionType,
+          isConsolidated: consolidated,
+          userId,
+          transferId,
+          installmentId: instId,
+          installmentNumber: instNum,
+          totalInstallments: totalInst,
+          frequency: freq,
+        };
+        batch.set(incomeRef, incomeTransaction);
+        updateBalance(incomeTransaction, true);
       };
 
       if (editingTransaction) {
@@ -319,7 +359,44 @@ export function TransactionModal({
         }
       } else {
         const numInstallments = isInfinite ? 24 : parseInt(installments);
-        if (numInstallments > 1 || isInfinite) {
+
+        if (type === 'transfer') {
+          if (numInstallments > 1 || isInfinite) {
+            const installmentId = crypto.randomUUID();
+            for (let i = 0; i < numInstallments; i++) {
+              const installmentDate = getNextDate(new Date(date), frequency, i);
+              const descriptionWithSuffix = isInfinite
+                ? `${description} (#${i + 1})`
+                : `${description} (${i + 1}/${numInstallments})`;
+
+              createTransferPair(
+                descriptionWithSuffix,
+                numericAmount,
+                installmentDate.toISOString(),
+                accountId,
+                toAccountId,
+                i === 0 ? isConsolidated : false,
+                installmentId,
+                i + 1,
+                isInfinite ? null : numInstallments,
+                frequency
+              );
+            }
+          } else {
+            createTransferPair(
+              description,
+              numericAmount,
+              new Date(date + 'T12:00:00').toISOString(),
+              accountId,
+              toAccountId,
+              isConsolidated,
+              undefined,
+              undefined,
+              undefined,
+              null
+            );
+          }
+        } else if (numInstallments > 1 || isInfinite) {
           const installmentId = crypto.randomUUID();
           for (let i = 0; i < numInstallments; i++) {
             const installmentDate = getNextDate(new Date(date), frequency, i);

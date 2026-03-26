@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LocalStorageService } from './localStorageService';
 
 // Mock IndexedDB

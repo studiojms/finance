@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ConnectionService } from './connectionService';
 
 describe('ConnectionService', () => {

@@ -82,7 +82,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
           </span>
           <span className="w-1 h-1 rounded-full bg-slate-300" />
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {transaction.type === 'transfer' ? 'Transferência' : category?.name || 'Sem categoria'}
+            {transaction.categoryId === 'transfer' ? 'Transferência' : category?.name || 'Sem categoria'}
           </span>
           {transaction.installmentId && (
             <>

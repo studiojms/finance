@@ -17,18 +17,25 @@ export function useTransactionOperations(transactions: Transaction[]): UseTransa
 
     try {
       const batch = writeBatch(db);
-      const docRef = doc(db, 'transactions', transaction.id);
       const newStatus = !transaction.isConsolidated;
-      batch.update(docRef, { isConsolidated: newStatus });
 
-      const diff = transaction.amount * (newStatus ? 1 : -1);
+      if (transaction.transferId) {
+        const pairedTransactions = transactions.filter((t) => t.transferId === transaction.transferId);
 
-      if (transaction.type === 'transfer') {
-        const fromRef = doc(db, 'accounts', transaction.accountId);
-        const toRef = doc(db, 'accounts', transaction.toAccountId!);
-        batch.update(fromRef, { balance: increment(-diff) });
-        batch.update(toRef, { balance: increment(diff) });
+        pairedTransactions.forEach((t) => {
+          const docRef = doc(db, 'transactions', t.id);
+          batch.update(docRef, { isConsolidated: newStatus });
+
+          const diff = t.amount * (newStatus ? 1 : -1);
+          const accountRef = doc(db, 'accounts', t.accountId);
+          const accountDiff = t.type === 'income' ? diff : -diff;
+          batch.update(accountRef, { balance: increment(accountDiff) });
+        });
       } else {
+        const docRef = doc(db, 'transactions', transaction.id);
+        batch.update(docRef, { isConsolidated: newStatus });
+
+        const diff = transaction.amount * (newStatus ? 1 : -1);
         const accountRef = doc(db, 'accounts', transaction.accountId);
         const accountDiff = transaction.type === 'income' ? diff : -diff;
         batch.update(accountRef, { balance: increment(accountDiff) });
@@ -51,16 +58,32 @@ export function useTransactionOperations(transactions: Transaction[]): UseTransa
 
       const reverseBalance = (t: Transaction) => {
         if (!t.isConsolidated) return;
-        if (t.type === 'transfer') {
-          batch.update(doc(db, 'accounts', t.accountId), { balance: increment(t.amount) });
-          batch.update(doc(db, 'accounts', t.toAccountId!), { balance: increment(-t.amount) });
-        } else {
-          const diff = t.type === 'income' ? -t.amount : t.amount;
-          batch.update(doc(db, 'accounts', t.accountId), { balance: increment(diff) });
-        }
+        const diff = t.type === 'income' ? -t.amount : t.amount;
+        batch.update(doc(db, 'accounts', t.accountId), { balance: increment(diff) });
       };
 
-      if (mode === 'only' || !transaction.installmentId) {
+      if (transaction.transferId) {
+        const pairedTransactions = transactions.filter((t) => t.transferId === transaction.transferId);
+
+        if (mode === 'only' || !transaction.installmentId) {
+          pairedTransactions.forEach((t) => {
+            batch.delete(doc(db, 'transactions', t.id));
+            reverseBalance(t);
+          });
+        } else {
+          pairedTransactions.forEach((paired) => {
+            const futurePaired = transactions.filter(
+              (t) =>
+                t.installmentId === paired.installmentId &&
+                (t.installmentNumber || 0) >= (paired.installmentNumber || 0)
+            );
+            futurePaired.forEach((t) => {
+              batch.delete(doc(db, 'transactions', t.id));
+              reverseBalance(t);
+            });
+          });
+        }
+      } else if (mode === 'only' || !transaction.installmentId) {
         batch.delete(doc(db, 'transactions', transaction.id));
         reverseBalance(transaction);
       } else {
