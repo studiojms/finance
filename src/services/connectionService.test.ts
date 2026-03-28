@@ -16,10 +16,10 @@ describe('ConnectionService', () => {
     });
 
     // Mock window
-    const eventListeners: { [key: string]: Function[] } = {};
+    const eventListeners: { [key: string]: ((event: Event) => void)[] } = {};
     Object.defineProperty(global, 'window', {
       value: {
-        addEventListener: vi.fn((event: string, handler: Function) => {
+        addEventListener: vi.fn((event: string, handler: (event: Event) => void) => {
           if (!eventListeners[event]) eventListeners[event] = [];
           eventListeners[event].push(handler);
         }),
