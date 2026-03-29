@@ -1,19 +1,19 @@
 {
-  "name": "Finanças Pro",
+  "name": "Finanças",
   "short_name": "Finanças",
-  "description": "Controle de finanças pessoais focado em mobile.",
+  "description": "Controle de finanças pessoais",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#10b981",
   "theme_color": "#10b981",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/finance/192/192",
-      "sizes": "192x192",
+      "src": "finance-128.png",
+      "sizes": "128x128",
       "type": "image/png"
     },
     {
-      "src": "https://picsum.photos/seed/finance/512/512",
+      "src": "finance-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
