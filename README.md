@@ -33,7 +33,6 @@ A modern, comprehensive personal finance management application built with React
 - **Charts**: Recharts
 - **Icons**: Lucide React
 - **Date Handling**: date-fns
-- **AI Integration**: Google Gemini API
 - **Testing**: Vitest, React Testing Library
 - **Containerization**: Docker, Docker Compose
 

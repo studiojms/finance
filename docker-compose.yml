@@ -95,8 +95,6 @@ services:
       - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
       # PostgreSQL Direct Configuration
       - VITE_DATABASE_URL=${VITE_DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/finance_pro}
-      # Gemini API
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
     env_file:
       - .env.local
     restart: unless-stopped
