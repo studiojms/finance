@@ -47,7 +47,7 @@ export class ConnectionService {
     // Check connection every 30 seconds
     setInterval(async () => {
       try {
-        const response = await fetch('/ping.txt', {
+        const response = await fetch(`${import.meta.env.BASE_URL}ping.txt`, {
           method: 'HEAD',
           cache: 'no-cache',
         });
