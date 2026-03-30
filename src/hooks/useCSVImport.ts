@@ -116,7 +116,7 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
             accountId,
             categoryId,
             type,
-            isConsolidated: true,
+            isConsolidated: dateObj <= new Date(),
             userId,
           });
 
@@ -134,9 +134,9 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
             await batch.commit();
             const currentChunk = Math.floor(i / CHUNK_SIZE) + 1;
             setImportProgress(Math.round((currentChunk / totalChunks) * 100));
-          } catch (err: any) {
+          } catch (err: unknown) {
             setImportStatus('error');
-            setImportError(err.message || 'Error processing batch.');
+            setImportError((err as Error).message || 'Error processing batch.');
             setIsImporting(false);
             handleFirestoreError(err, 'write', 'import');
             return;
@@ -157,9 +157,9 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
         setImportStatus('idle');
         setImportProgress(0);
       }, 5000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setImportStatus('error');
-      setImportError(err.message || 'Failed to import CSV');
+      setImportError((err as Error).message || 'Failed to import CSV');
       setIsImporting(false);
     }
   };
