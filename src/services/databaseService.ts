@@ -10,6 +10,7 @@ import {
   getDoc,
   getDocs,
   Timestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db as firebaseDb } from '../firebase';
 import { supabase } from '../supabase';
@@ -321,6 +322,68 @@ export class DatabaseService {
       return documents;
     }
     return [];
+  }
+
+  static async bulkDeleteUserDocuments(collectionName: string, userId: string): Promise<number> {
+    let deletedCount = 0;
+
+    if (!ConnectionService.isOnline()) {
+      const cachedDocuments = await this.loadCachedData(collectionName, userId);
+      for (const document of cachedDocuments) {
+        await LocalStorageService.deleteDocument(document.id);
+        await LocalStorageService.addOperation({
+          type: 'delete',
+          collection: collectionName,
+          documentId: document.id,
+        });
+        deletedCount++;
+      }
+      return deletedCount;
+    }
+
+    if (isFirebase() && firebaseDb) {
+      const q = query(collection(firebaseDb, collectionName), where('userId', '==', userId));
+      const snapshot = await getDocs(q);
+
+      const batchSize = 500;
+      const batches: any[] = [];
+      let currentBatch = writeBatch(firebaseDb);
+      let operationCount = 0;
+
+      snapshot.docs.forEach((docSnapshot) => {
+        currentBatch.delete(docSnapshot.ref);
+        operationCount++;
+        deletedCount++;
+
+        if (operationCount >= batchSize) {
+          batches.push(currentBatch);
+          currentBatch = writeBatch(firebaseDb);
+          operationCount = 0;
+        }
+      });
+
+      if (operationCount > 0) {
+        batches.push(currentBatch);
+      }
+
+      await Promise.all(batches.map((batch) => batch.commit()));
+
+      for (const docSnapshot of snapshot.docs) {
+        await LocalStorageService.deleteDocument(docSnapshot.id);
+      }
+    } else if (isSupabase() && supabase) {
+      const { data, error } = await supabase.from(collectionName).delete().eq('user_id', userId).select();
+      if (error) throw error;
+      deletedCount = data?.length || 0;
+
+      if (data) {
+        for (const document of data) {
+          await LocalStorageService.deleteDocument(document.id);
+        }
+      }
+    }
+
+    return deletedCount;
   }
 
   static createTimestamp(date?: Date): any {

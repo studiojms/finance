@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { deleteDoc, doc } from 'firebase/firestore';
+import { deleteDoc, doc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
 import {
   LayoutDashboard,
@@ -25,6 +25,7 @@ import { ConfirmationModal } from './components/modals/ConfirmationModal';
 import { InstallmentDeleteModal } from './components/modals/InstallmentDeleteModal';
 import { QuickActionPopup } from './components/QuickActionPopup';
 import { UserSettingsModal } from './components/modals/UserSettingsModal';
+import { DataErasureModal, DataErasureMode } from './components/modals/DataErasureModal';
 import { Login } from './components/Login';
 import { DashboardView } from './components/views/DashboardView';
 import { TransactionsView } from './components/views/TransactionsView';
@@ -117,6 +118,9 @@ export default function App() {
     return (saved as 'asc' | 'desc') || 'desc';
   });
 
+  const [isDataErasureModalOpen, setIsDataErasureModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Transaction calculations
   const { filteredTransactions, totals, totalBalance, upcomingTransactions, transactionsByDay, pieChartData } =
     useTransactionCalculations({
@@ -147,6 +151,64 @@ export default function App() {
       });
     }
     return importFromCSVOriginal(file);
+  };
+
+  const handleEraseData = async (mode: DataErasureMode) => {
+    if (!user?.uid || !db) return;
+
+    setIsDeleting(true);
+    try {
+      const batch = writeBatch(db);
+      let deletedCount = 0;
+
+      if (
+        mode === 'transactions' ||
+        mode === 'transactions-accounts' ||
+        mode === 'transactions-categories' ||
+        mode === 'all'
+      ) {
+        const transactionsQuery = query(collection(db, 'transactions'), where('userId', '==', user.uid));
+        const transactionsSnapshot = await getDocs(transactionsQuery);
+        transactionsSnapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+          deletedCount++;
+        });
+      }
+
+      if (mode === 'transactions-accounts' || mode === 'all') {
+        const accountsQuery = query(collection(db, 'accounts'), where('userId', '==', user.uid));
+        const accountsSnapshot = await getDocs(accountsQuery);
+        accountsSnapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+          deletedCount++;
+        });
+      }
+
+      if (mode === 'transactions-categories' || mode === 'all') {
+        const categoriesQuery = query(collection(db, 'categories'), where('userId', '==', user.uid));
+        const categoriesSnapshot = await getDocs(categoriesQuery);
+        categoriesSnapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+          deletedCount++;
+        });
+      }
+
+      await batch.commit();
+
+      if (analytics) {
+        logEvent(analytics, 'data_erased', {
+          mode,
+          deleted_count: deletedCount,
+        });
+      }
+
+      setIsDataErasureModalOpen(false);
+    } catch (error) {
+      console.error('Error erasing data:', error);
+      alert('Erro ao apagar dados. Por favor, tente novamente.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   useEffect(() => {
@@ -645,6 +707,13 @@ export default function App() {
         transactionSortOrder={transactionSortOrder}
         setTransactionSortOrder={setTransactionSortOrder}
         onLogout={handleLogout}
+        onEraseData={() => setIsDataErasureModalOpen(true)}
+      />
+      <DataErasureModal
+        isOpen={isDataErasureModalOpen}
+        onClose={() => setIsDataErasureModalOpen(false)}
+        onConfirm={handleEraseData}
+        isDeleting={isDeleting}
       />
       <QuickActionPopup
         isOpen={modalState.isQuickActionOpen}

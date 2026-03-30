@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, TrendingUp, Calendar, LogOut } from 'lucide-react';
+import { X, TrendingUp, Calendar, LogOut, Trash2 } from 'lucide-react';
 import { cn } from '../../utils';
 import { AuthUser } from '../../services/authService';
 
@@ -13,6 +13,7 @@ interface UserSettingsModalProps {
   transactionSortOrder: 'asc' | 'desc';
   setTransactionSortOrder: (value: (prev: 'asc' | 'desc') => 'asc' | 'desc') => void;
   onLogout: () => void;
+  onEraseData: () => void;
 }
 
 export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
@@ -23,6 +24,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   setIncludePreviousBalance,
   transactionSortOrder,
   setTransactionSortOrder,
+  onEraseData,
   onLogout,
 }) => {
   return (
@@ -112,9 +114,24 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                 </div>
               </div>
 
+              <div className="space-y-4">
+                <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">Zona de Perigo</h5>
+
+                <button
+                  onClick={() => {
+                    onClose();
+                    onEraseData();
+                  }}
+                  className="w-full py-4 bg-rose-50 text-rose-600 rounded-3xl font-bold flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors"
+                >
+                  <Trash2 size={20} />
+                  Apagar Dados
+                </button>
+              </div>
+
               <button
                 onClick={onLogout}
-                className="w-full py-4 bg-rose-50 text-rose-600 rounded-3xl font-bold flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors"
+                className="w-full py-4 bg-slate-50 text-slate-600 rounded-3xl font-bold flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors"
               >
                 <LogOut size={20} />
                 Sair da Conta

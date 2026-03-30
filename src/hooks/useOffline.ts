@@ -55,11 +55,13 @@ export function useOffline() {
     updatePendingCount();
     const interval = setInterval(updatePendingCount, 5000);
 
-    // Initial state
-    setState((prev) => ({
-      ...prev,
-      isOnline: ConnectionService.isOnline(),
-    }));
+    // Initial state - defer to avoid setState in effect warning
+    requestAnimationFrame(() => {
+      setState((prev) => ({
+        ...prev,
+        isOnline: ConnectionService.isOnline(),
+      }));
+    });
 
     return () => {
       unsubscribeConnection();
