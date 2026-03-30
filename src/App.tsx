@@ -41,18 +41,36 @@ import { useTransactionCalculations } from './hooks/useTransactionCalculations';
 import { useModalState } from './hooks/useModalState';
 import { CSVService } from './services/csvService';
 import { APP_CONFIG } from './config';
+import { analytics, logEvent } from './firebase';
 
 // --- Components ---
 
 export default function App() {
   const { user, loading, signOut: handleLogout } = useAuth();
   const { accounts, transactions, categories } = useFirestoreData(user?.uid || null);
-  const { toggleConsolidated, deleteTransaction } = useTransactionOperations(transactions);
+  const { toggleConsolidated: toggleConsolidatedOriginal, deleteTransaction } = useTransactionOperations(transactions);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'transactions' | 'accounts' | 'charts' | 'data'>(
     'dashboard'
   );
 
+  const toggleConsolidated = (transaction: Transaction) => {
+    if (analytics) {
+      logEvent(analytics, 'toggle_consolidated', {
+        transaction_id: transaction.id,
+        type: transaction.type,
+      });
+    }
+    toggleConsolidatedOriginal(transaction);
+  };
+
   const exportToCSV = () => {
+    if (analytics) {
+      logEvent(analytics, 'export_csv', {
+        transaction_count: transactions.length,
+        account_count: accounts.length,
+        category_count: categories.length,
+      });
+    }
     const blob = CSVService.exportToCSV(transactions, categories, accounts);
     CSVService.downloadCSV(blob);
   };
@@ -67,6 +85,12 @@ export default function App() {
 
   // Helper function to handle transaction deletion
   const handleDeleteTransaction = (transaction: Transaction) => {
+    if (analytics) {
+      logEvent(analytics, 'delete_transaction_initiated', {
+        has_installment: !!transaction.installmentId,
+        type: transaction.type,
+      });
+    }
     if (transaction.installmentId) {
       modalState.openInstallmentDelete(transaction, (mode) => {
         deleteTransaction(transaction, mode);
@@ -107,15 +131,41 @@ export default function App() {
       transactionSortOrder,
     });
 
-  const { isImporting, importProgress, importStatus, importError, importFromCSV } = useCSVImport(
-    user?.uid || '',
-    accounts,
-    categories
-  );
+  const {
+    isImporting,
+    importProgress,
+    importStatus,
+    importError,
+    importFromCSV: importFromCSVOriginal,
+  } = useCSVImport(user?.uid || '', accounts, categories);
+
+  const importFromCSV = async (file: File) => {
+    if (analytics) {
+      logEvent(analytics, 'import_csv_initiated', {
+        file_size: file.size,
+        file_name: file.name,
+      });
+    }
+    return importFromCSVOriginal(file);
+  };
 
   useEffect(() => {
     localStorage.setItem('includePreviousBalance', JSON.stringify(includePreviousBalance));
   }, [includePreviousBalance]);
+
+  useEffect(() => {
+    if (analytics) {
+      logEvent(analytics, 'page_view', { page: 'App' });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (analytics) {
+      logEvent(analytics, 'page_change', {
+        tab: activeTab,
+      });
+    }
+  }, [activeTab]);
 
   // Reset scroll flag when month changes
   useEffect(() => {
@@ -245,7 +295,12 @@ export default function App() {
       <header className="bg-emerald-600 text-white p-4 pt-8 pb-6 landscape:pt-4 landscape:pb-4 rounded-b-[2.5rem] landscape:rounded-b-[1.5rem] shadow-lg transition-all">
         <div className="flex justify-between items-center mb-6 landscape:mb-2">
           <button
-            onClick={modalState.openSettings}
+            onClick={() => {
+              if (analytics) {
+                logEvent(analytics, 'open_settings');
+              }
+              modalState.openSettings();
+            }}
             className="flex items-center gap-3 text-left hover:bg-white/10 p-1 rounded-2xl transition-colors"
           >
             <div className="w-10 h-10 landscape:w-8 landscape:h-8 rounded-full bg-emerald-500/50 flex items-center justify-center overflow-hidden border-2 border-emerald-400">
@@ -263,7 +318,12 @@ export default function App() {
           </button>
           <div className="flex gap-2">
             <button
-              onClick={() => setActiveTab('data')}
+              onClick={() => {
+                if (analytics) {
+                  logEvent(analytics, 'navigate_to_data');
+                }
+                setActiveTab('data');
+              }}
               className={cn(
                 'p-2 rounded-full transition-colors',
                 activeTab === 'data' ? 'bg-white text-emerald-600' : 'hover:bg-emerald-500 text-white'
@@ -272,7 +332,12 @@ export default function App() {
               <Database size={20} />
             </button>
             <button
-              onClick={handleLogout}
+              onClick={() => {
+                if (analytics) {
+                  logEvent(analytics, 'logout');
+                }
+                handleLogout();
+              }}
               className="p-2 hover:bg-emerald-500 rounded-full transition-colors text-white"
             >
               <LogOut size={20} />
@@ -283,6 +348,9 @@ export default function App() {
         <div className="flex items-center justify-between bg-white/10 rounded-2xl p-1 mb-4 landscape:mb-2">
           <button
             onClick={() => {
+              if (analytics) {
+                logEvent(analytics, 'navigate_month', { direction: 'previous' });
+              }
               setCurrentMonth(subMonths(currentMonth, 1));
               setFilterToday(false);
             }}
@@ -296,6 +364,9 @@ export default function App() {
             </span>
             <button
               onClick={() => {
+                if (analytics) {
+                  logEvent(analytics, 'navigate_month', { direction: 'today' });
+                }
                 setCurrentMonth(new Date());
                 setFilterToday(false);
               }}
@@ -306,6 +377,9 @@ export default function App() {
           </div>
           <button
             onClick={() => {
+              if (analytics) {
+                logEvent(analytics, 'navigate_month', { direction: 'next' });
+              }
               setCurrentMonth(addMonths(currentMonth, 1));
               setFilterToday(false);
             }}
@@ -347,6 +421,13 @@ export default function App() {
               setFilterToday={setFilterToday}
               onToggleConsolidated={toggleConsolidated}
               onEditTransaction={(t) => {
+                if (analytics) {
+                  logEvent(analytics, 'open_transaction_modal', {
+                    action: 'edit',
+                    type: t.type,
+                    source: 'dashboard',
+                  });
+                }
                 modalState.openTransactionModal('expense', t);
               }}
               onDeleteTransaction={handleDeleteTransaction}
@@ -367,6 +448,13 @@ export default function App() {
               setFilterToday={setFilterToday}
               onToggleConsolidated={toggleConsolidated}
               onEditTransaction={(t) => {
+                if (analytics) {
+                  logEvent(analytics, 'open_transaction_modal', {
+                    action: 'edit',
+                    type: t.type,
+                    source: 'transactions',
+                  });
+                }
                 modalState.openTransactionModal('expense', t);
               }}
               onDeleteTransaction={handleDeleteTransaction}
@@ -377,28 +465,50 @@ export default function App() {
             <ManageView
               accounts={accounts}
               onEditAccount={(account) => {
+                if (analytics) {
+                  logEvent(analytics, 'open_account_modal', { action: 'edit' });
+                }
                 modalState.openAccountModal(account);
               }}
               onDeleteAccount={(account) => {
+                if (analytics) {
+                  logEvent(analytics, 'delete_account_initiated');
+                }
                 modalState.openConfirm(
                   'Excluir Conta',
                   'Deseja excluir esta conta? Esta ação não pode ser desfeita.',
                   () => deleteDoc(doc(db, 'accounts', account.id))
                 );
               }}
-              onAddAccount={() => modalState.openAccountModal()}
+              onAddAccount={() => {
+                if (analytics) {
+                  logEvent(analytics, 'open_account_modal', { action: 'add' });
+                }
+                modalState.openAccountModal();
+              }}
               categories={categories}
               onEditCategory={(category) => {
+                if (analytics) {
+                  logEvent(analytics, 'open_category_modal', { action: 'edit' });
+                }
                 modalState.openCategoryModal(category);
               }}
               onDeleteCategory={(category) => {
+                if (analytics) {
+                  logEvent(analytics, 'delete_category_initiated');
+                }
                 modalState.openConfirm(
                   'Excluir Categoria',
                   'Deseja excluir esta categoria? Esta ação não pode ser desfeita.',
                   () => deleteDoc(doc(db, 'categories', category.id))
                 );
               }}
-              onAddCategory={() => modalState.openCategoryModal()}
+              onAddCategory={() => {
+                if (analytics) {
+                  logEvent(analytics, 'open_category_modal', { action: 'add' });
+                }
+                modalState.openCategoryModal();
+              }}
             />
           )}
 
@@ -446,7 +556,12 @@ export default function App() {
         />
 
         <button
-          onClick={modalState.openQuickAction}
+          onClick={() => {
+            if (analytics) {
+              logEvent(analytics, 'open_quick_action');
+            }
+            modalState.openQuickAction();
+          }}
           className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 -mt-12 active:scale-90 transition-transform"
         >
           <Plus size={32} />
@@ -535,6 +650,12 @@ export default function App() {
         isOpen={modalState.isQuickActionOpen}
         onClose={modalState.closeQuickAction}
         onSelect={(type) => {
+          if (analytics) {
+            logEvent(analytics, 'open_transaction_modal', {
+              action: 'add',
+              type: type,
+            });
+          }
           modalState.closeQuickAction();
           modalState.openTransactionModal(type);
         }}

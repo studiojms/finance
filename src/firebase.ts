@@ -1,11 +1,13 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence, Firestore } from 'firebase/firestore';
+import { getAnalytics, logEvent, Analytics } from 'firebase/analytics';
 import { APP_CONFIG } from './config';
 
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
+let analytics: Analytics | null = null;
 
 if (APP_CONFIG.backend === 'firebase' && APP_CONFIG.firebase.apiKey) {
   app = initializeApp(APP_CONFIG.firebase);
@@ -27,7 +29,11 @@ if (APP_CONFIG.backend === 'firebase' && APP_CONFIG.firebase.apiKey) {
         console.warn('Firestore persistence unimplemented');
       }
     });
+
+    if (APP_CONFIG.firebase.measurementId) {
+      analytics = getAnalytics(app);
+    }
   }
 }
 
-export { db, auth };
+export { db, auth, analytics, logEvent };
