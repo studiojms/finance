@@ -482,10 +482,16 @@ export function TransactionModal({
 
         <div className="space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Valor</label>
+            <label
+              htmlFor="transaction-amount"
+              className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+            >
+              Valor
+            </label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">R$</span>
               <input
+                id="transaction-amount"
                 ref={amountInputRef}
                 type="text"
                 inputMode="numeric"
@@ -575,7 +581,7 @@ export function TransactionModal({
             </AnimatePresence>
           </div>
 
-          <div className={cn('grid gap-4', type === 'transfer' ? 'grid-cols-1' : 'grid-cols-2')}>
+          <div className={cn('grid gap-4', type === 'transfer' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2')}>
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data</label>
               <input
@@ -761,12 +767,16 @@ export function TransactionModal({
                   animate={{ height: 'auto', opacity: 1 }}
                   className="space-y-4 overflow-hidden"
                 >
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                      <label
+                        htmlFor="transaction-installments"
+                        className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                      >
                         {type === 'transfer' ? 'Repetições' : 'Parcelas'}
                       </label>
                       <input
+                        id="transaction-installments"
                         type="number"
                         min="1"
                         value={installments}
@@ -776,10 +786,14 @@ export function TransactionModal({
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                      <label
+                        htmlFor="transaction-frequency"
+                        className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                      >
                         Frequência
                       </label>
                       <select
+                        id="transaction-frequency"
                         value={frequency}
                         onChange={(e) => setFrequency(e.target.value as any)}
                         className="w-full px-4 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 appearance-none"
@@ -794,6 +808,30 @@ export function TransactionModal({
                       </select>
                     </div>
                   </div>
+
+                  {!isInfinite && parseInt(installments) > 1 && (
+                    <div className="p-4 bg-emerald-50 rounded-2xl">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-emerald-800 uppercase tracking-widest">
+                          Valor Total
+                        </span>
+                        <span className="text-2xl font-black text-emerald-600">
+                          R${' '}
+                          {((parseFloat(amount) / 100) * parseInt(installments)).toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-emerald-700 mt-2">
+                        {installments} × R${' '}
+                        {(parseFloat(amount) / 100).toLocaleString('pt-BR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                    </div>
+                  )}
 
                   <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer">
                     <input

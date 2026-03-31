@@ -145,7 +145,7 @@ export function AccountModal({ isOpen, onClose, userId, editingAccount, transact
             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">
               Saldo Inicial (Base)
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col md:flex-row gap-2">
               <input
                 type="number"
                 placeholder="Saldo Inicial"
@@ -157,7 +157,7 @@ export function AccountModal({ isOpen, onClose, userId, editingAccount, transact
                 type="date"
                 value={initialBalanceDate}
                 onChange={(e) => setInitialBalanceDate(e.target.value)}
-                className="w-40 p-4 bg-slate-50 rounded-2xl font-bold text-sm"
+                className="md:w-40 p-4 bg-slate-50 rounded-2xl font-bold text-sm"
               />
             </div>
           </div>
