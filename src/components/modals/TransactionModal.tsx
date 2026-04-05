@@ -26,7 +26,10 @@ import { Account, Transaction, Category, TransactionType } from '../../types';
 import { handleFirestoreError } from '../../services/errorService';
 import { DatabaseService } from '../../services/databaseService';
 import { ConnectionService } from '../../services/connectionService';
+import { LocalStorageService } from '../../services/localStorageService';
 import { cn } from '../../utils';
+
+const LAST_USED_ACCOUNT_KEY = 'lastUsedAccountId';
 
 const CATEGORY_ICONS = [
   { id: 'Tag', icon: Tag },
@@ -90,7 +93,7 @@ export function TransactionModal({
   const [description, setDescription] = useState(editingTransaction?.description || '');
   const [amount, setAmount] = useState(editingTransaction ? (editingTransaction.amount * 100).toFixed(0) : '0');
   const [date, setDate] = useState(editingTransaction?.date.split('T')[0] || format(new Date(), 'yyyy-MM-dd'));
-  const [accountId, setAccountId] = useState(editingTransaction?.accountId || accounts[0]?.id || '');
+  const [accountId, setAccountId] = useState(editingTransaction?.accountId || '');
   const [categoryId, setCategoryId] = useState(editingTransaction?.categoryId || '');
   const [toAccountId, setToAccountId] = useState(editingTransaction?.toAccountId || '');
   const [frequency, setFrequency] = useState<
@@ -178,6 +181,24 @@ export function TransactionModal({
       amountInputRef.current.setSelectionRange(len, len);
     }
   }, [amount]);
+
+  useEffect(() => {
+    if (!editingTransaction && accounts.length > 0 && !accountId) {
+      const loadLastUsedAccount = async () => {
+        try {
+          const lastUsedAccountId = await LocalStorageService.getMetadata(LAST_USED_ACCOUNT_KEY);
+          if (typeof lastUsedAccountId === 'string' && accounts.some((acc) => acc.id === lastUsedAccountId)) {
+            setAccountId(lastUsedAccountId);
+          } else {
+            setAccountId(accounts[0]?.id || '');
+          }
+        } catch {
+          setAccountId(accounts[0]?.id || '');
+        }
+      };
+      loadLastUsedAccount();
+    }
+  }, [editingTransaction, accounts, accountId]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '');
@@ -441,6 +462,15 @@ export function TransactionModal({
       }
 
       await batch.commit();
+
+      // Save the last used account for new transactions
+      if (!editingTransaction && accountId) {
+        try {
+          await LocalStorageService.setMetadata(LAST_USED_ACCOUNT_KEY, accountId);
+        } catch {
+          console.error('Failed to save last used account');
+        }
+      }
 
       // If offline, ensure the operation is also queued in our custom offline system
       // as a backup to Firebase's built-in offline persistence
