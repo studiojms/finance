@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TransactionModal } from './TransactionModal';
 import { Account, Category, Transaction } from '../../types';
-import { addDoc } from 'firebase/firestore';
+import { DatabaseService } from '../../services/databaseService';
 
 vi.mock('firebase/firestore', () => ({
   addDoc: vi.fn(),
@@ -13,6 +13,7 @@ vi.mock('firebase/firestore', () => ({
     update: vi.fn(),
     delete: vi.fn(),
     commit: vi.fn(),
+    set: vi.fn(),
   })),
   query: vi.fn(),
   where: vi.fn(),
@@ -22,6 +23,19 @@ vi.mock('firebase/firestore', () => ({
 
 vi.mock('../../firebase', () => ({
   db: {},
+  auth: {
+    currentUser: {
+      uid: 'test-user-123',
+      email: 'test@example.com',
+      emailVerified: true,
+    },
+  },
+}));
+
+vi.mock('../../services/databaseService', () => ({
+  DatabaseService: {
+    addDocument: vi.fn(),
+  },
 }));
 
 describe('TransactionModal - Inline Category Creation', () => {
@@ -176,8 +190,8 @@ describe('TransactionModal - Inline Category Creation', () => {
 
   it('creates new category when form is submitted', async () => {
     const user = userEvent.setup();
-    const mockDocRef = { id: 'new-cat-id' };
-    (addDoc as any).mockResolvedValue(mockDocRef);
+    const mockDocId = 'new-cat-id';
+    vi.mocked(DatabaseService.addDocument).mockResolvedValue(mockDocId);
 
     render(<TransactionModal {...defaultProps} />);
 
@@ -196,8 +210,9 @@ describe('TransactionModal - Inline Category Creation', () => {
     await user.click(createButton);
 
     await waitFor(() => {
-      expect(addDoc).toHaveBeenCalled();
-      const call = (addDoc as any).mock.calls[0];
+      expect(DatabaseService.addDocument).toHaveBeenCalled();
+      const call = vi.mocked(DatabaseService.addDocument).mock.calls[0];
+      expect(call[0]).toBe('categories');
       expect(call[1]).toMatchObject({
         name: 'Nova Categoria',
         userId: 'user1',

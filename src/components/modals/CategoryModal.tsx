@@ -18,10 +18,9 @@ import {
   Smartphone,
   DollarSign,
 } from 'lucide-react';
-import { doc, collection, addDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
 import { Category } from '../../types';
 import { handleFirestoreError } from '../../services/errorService';
+import { DatabaseService } from '../../services/databaseService';
 import { cn } from '../../utils';
 
 const CATEGORY_ICONS = [
@@ -86,9 +85,9 @@ export function CategoryModal({ isOpen, onClose, userId, editingCategory }: Cate
       };
 
       if (editingCategory) {
-        await updateDoc(doc(db, 'categories', editingCategory.id), data);
+        await DatabaseService.updateDocument('categories', editingCategory.id, data);
       } else {
-        await addDoc(collection(db, 'categories'), data);
+        await DatabaseService.addDocument('categories', data);
       }
       onClose();
     } catch (err) {

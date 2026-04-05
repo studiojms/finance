@@ -22,6 +22,13 @@ vi.mock('firebase/firestore', () => ({
 
 vi.mock('../../firebase', () => ({
   db: {},
+  auth: {
+    currentUser: {
+      uid: 'test-user-123',
+      email: 'test@example.com',
+      emailVerified: true,
+    },
+  },
 }));
 
 describe('TransactionModal - Mobile Responsive Layout', () => {

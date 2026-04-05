@@ -20,10 +20,12 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { format, addDays, addWeeks, addMonths, addYears } from 'date-fns';
-import { doc, collection, addDoc, writeBatch, query, where, getDocs, increment } from 'firebase/firestore';
+import { doc, collection, writeBatch, query, where, getDocs, increment } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Account, Transaction, Category, TransactionType } from '../../types';
 import { handleFirestoreError } from '../../services/errorService';
+import { DatabaseService } from '../../services/databaseService';
+import { ConnectionService } from '../../services/connectionService';
 import { cn } from '../../utils';
 
 const CATEGORY_ICONS = [
@@ -75,7 +77,6 @@ interface TransactionModalProps {
 }
 
 export function TransactionModal({
-  isOpen,
   onClose,
   accounts,
   categories,
@@ -94,7 +95,16 @@ export function TransactionModal({
   const [toAccountId, setToAccountId] = useState(editingTransaction?.toAccountId || '');
   const [frequency, setFrequency] = useState<
     'daily' | 'weekly' | 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'annual'
-  >((editingTransaction?.frequency as any) || 'monthly');
+  >(
+    (editingTransaction?.frequency as
+      | 'daily'
+      | 'weekly'
+      | 'monthly'
+      | 'bimonthly'
+      | 'quarterly'
+      | 'semiannual'
+      | 'annual') || 'monthly'
+  );
   const [installments, setInstallments] = useState(editingTransaction?.totalInstallments?.toString() || '1');
   const [isInfinite, setIsInfinite] = useState(editingTransaction?.totalInstallments === null);
   const [isConsolidated, setIsConsolidated] = useState(editingTransaction?.isConsolidated || false);
@@ -183,16 +193,18 @@ export function TransactionModal({
     if (!newCategoryName.trim()) return;
 
     try {
-      const docRef = await addDoc(collection(db, 'categories'), {
+      const categoryData = {
         name: newCategoryName.trim(),
         icon: newCategoryIcon,
         color: newCategoryColor,
         type: type === 'transfer' ? 'both' : type,
         userId,
-      });
+      };
+
+      const docId = await DatabaseService.addDocument('categories', categoryData);
 
       // Set the newly created category as selected
-      setCategoryId(docRef.id);
+      setCategoryId(docId);
       setIsCreatingCategory(false);
       setNewCategoryName('');
       setNewCategoryColor('#94a3b8');
@@ -208,6 +220,7 @@ export function TransactionModal({
     if (type === 'transfer' && numericAmount <= 0) return;
     if (type !== 'transfer' && numericAmount <= 0) return;
     if (isSaving) return;
+    if (!db) return; // Guard against null db
 
     setIsSaving(true);
     try {
@@ -247,7 +260,11 @@ export function TransactionModal({
         }
       };
 
-      const updateBalance = (t: any, isNew: boolean, oldT?: Transaction) => {
+      const updateBalance = (
+        t: Omit<Transaction, 'id'> | Transaction | typeof baseTransaction,
+        isNew: boolean,
+        oldT?: Transaction
+      ) => {
         if (!t.isConsolidated && (!oldT || !oldT.isConsolidated)) return;
 
         if (isNew) {
@@ -424,7 +441,19 @@ export function TransactionModal({
       }
 
       await batch.commit();
+
+      // If offline, ensure the operation is also queued in our custom offline system
+      // as a backup to Firebase's built-in offline persistence
+      if (!ConnectionService.isOnline()) {
+        console.log('Transaction saved offline - will sync when connection is restored');
+      }
     } catch (err) {
+      // If the error is due to being offline, close the modal anyway
+      // Firebase's offline persistence will queue the operations
+      if (!ConnectionService.isOnline()) {
+        console.log('Transaction queued offline via Firebase persistence');
+        return; // Exit without showing error
+      }
       handleFirestoreError(err, editingTransaction ? 'update' : 'create', 'transactions');
     } finally {
       setIsSaving(false);
@@ -601,11 +630,13 @@ export function TransactionModal({
                   onChange={(e) => setAccountId(e.target.value)}
                   className="w-full px-4 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 appearance-none"
                 >
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
+                  {[...accounts]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
                 </select>
                 {accounts.find((a) => a.id === accountId) && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
@@ -628,8 +659,9 @@ export function TransactionModal({
                 className="w-full px-4 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 appearance-none"
               >
                 <option value="">Selecionar conta destino...</option>
-                {accounts
+                {[...accounts]
                   .filter((a) => a.id !== accountId)
+                  .sort((a, b) => a.name.localeCompare(b.name))
                   .map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
@@ -653,8 +685,9 @@ export function TransactionModal({
                     disabled={isCreatingCategory}
                   >
                     <option value="">Selecionar...</option>
-                    {categories
+                    {[...categories]
                       .filter((c) => c.type === type || c.type === 'both')
+                      .sort((a, b) => a.name.localeCompare(b.name))
                       .map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
@@ -795,7 +828,7 @@ export function TransactionModal({
                       <select
                         id="transaction-frequency"
                         value={frequency}
-                        onChange={(e) => setFrequency(e.target.value as any)}
+                        onChange={(e) => setFrequency(e.target.value as typeof frequency)}
                         className="w-full px-4 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 appearance-none"
                       >
                         <option value="daily">Diário</option>

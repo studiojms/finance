@@ -395,6 +395,93 @@ export class DatabaseService {
     return new Date();
   }
 
+  /**
+   * Execute a batch write operation with offline support
+   * When offline, operations are queued and data is saved to local storage
+   */
+  static async executeBatchWrite(
+    operations: Array<{
+      type: 'create' | 'update' | 'delete';
+      collection: string;
+      documentId?: string;
+      data?: any;
+    }>
+  ): Promise<void> {
+    // Save to local storage immediately (optimistic update)
+    for (const operation of operations) {
+      const { type, collection: collectionName, documentId, data } = operation;
+
+      if (type === 'create' && data) {
+        const tempId = documentId || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        await LocalStorageService.saveDocument(collectionName, data.userId || '', { ...data, id: tempId });
+      } else if (type === 'update' && documentId && data) {
+        const existingDoc = await LocalStorageService.getDocument(documentId);
+        if (existingDoc) {
+          await LocalStorageService.saveDocument(collectionName, (existingDoc as any).userId || '', {
+            ...existingDoc,
+            ...data,
+          });
+        }
+      } else if (type === 'delete' && documentId) {
+        await LocalStorageService.deleteDocument(documentId);
+      }
+    }
+
+    // If offline, queue for later sync
+    if (!ConnectionService.isOnline()) {
+      for (const operation of operations) {
+        await LocalStorageService.addOperation(operation);
+      }
+      return;
+    }
+
+    // Execute online
+    try {
+      if (isFirebase() && firebaseDb) {
+        const batch = writeBatch(firebaseDb);
+
+        for (const operation of operations) {
+          const { type, collection: collectionName, documentId, data } = operation;
+
+          if (type === 'create' && data) {
+            const docRef = documentId
+              ? doc(firebaseDb, collectionName, documentId)
+              : doc(collection(firebaseDb, collectionName));
+            batch.set(docRef, data);
+          } else if (type === 'update' && documentId && data) {
+            const docRef = doc(firebaseDb, collectionName, documentId);
+            batch.update(docRef, data);
+          } else if (type === 'delete' && documentId) {
+            const docRef = doc(firebaseDb, collectionName, documentId);
+            batch.delete(docRef);
+          }
+        }
+
+        await batch.commit();
+      } else if (isSupabase() && supabase) {
+        // Supabase doesn't have batch operations, execute sequentially
+        for (const operation of operations) {
+          const { type, collection: collectionName, documentId, data } = operation;
+
+          if (type === 'create') {
+            await supabase.from(collectionName).insert([data]);
+          } else if (type === 'update' && documentId) {
+            await supabase.from(collectionName).update(data).eq('id', documentId);
+          } else if (type === 'delete' && documentId) {
+            await supabase.from(collectionName).delete().eq('id', documentId);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to execute batch online, queuing for sync:', error);
+      // Queue for later sync on error
+      for (const operation of operations) {
+        await LocalStorageService.addOperation(operation);
+      }
+      throw error; // Re-throw so caller knows it failed
+    }
+  }
+
   static timestampToDate(timestamp: any): Date {
     if (isFirebase()) {
       return timestamp?.toDate?.() || new Date(timestamp);

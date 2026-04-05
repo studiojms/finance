@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { X, Banknote, CreditCard, Wallet, Landmark, PiggyBank, Briefcase, Coins, Receipt } from 'lucide-react';
 import { format, parseISO, isAfter, isEqual } from 'date-fns';
-import { doc, collection, addDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
 import { Account, Transaction } from '../../types';
 import { handleFirestoreError } from '../../services/errorService';
+import { DatabaseService } from '../../services/databaseService';
 import { cn } from '../../utils';
 
 const ACCOUNT_ICONS = [
@@ -77,9 +76,9 @@ export function AccountModal({ isOpen, onClose, userId, editingAccount, transact
       };
 
       if (editingAccount) {
-        await updateDoc(doc(db, 'accounts', editingAccount.id), data);
+        await DatabaseService.updateDocument('accounts', editingAccount.id, data);
       } else {
-        await addDoc(collection(db, 'accounts'), data);
+        await DatabaseService.addDocument('accounts', data);
       }
     } catch (err) {
       handleFirestoreError(err, editingAccount ? 'update' : 'create', 'accounts');

@@ -5,6 +5,13 @@ import { Category } from '../../types';
 
 vi.mock('../../firebase', () => ({
   db: {},
+  auth: {
+    currentUser: {
+      uid: 'test-user-123',
+      email: 'test@example.com',
+      emailVerified: true,
+    },
+  },
 }));
 
 vi.mock('firebase/firestore', () => ({

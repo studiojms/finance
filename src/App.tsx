@@ -216,6 +216,10 @@ export default function App() {
   }, [includePreviousBalance]);
 
   useEffect(() => {
+    localStorage.setItem('transactionSortOrder', transactionSortOrder);
+  }, [transactionSortOrder]);
+
+  useEffect(() => {
     if (analytics) {
       logEvent(analytics, 'page_view', { page: 'App' });
     }
@@ -364,6 +368,7 @@ export default function App() {
               modalState.openSettings();
             }}
             className="flex items-center gap-3 text-left hover:bg-white/10 p-1 rounded-2xl transition-colors"
+            aria-label="Configurações"
           >
             <div className="w-10 h-10 landscape:w-8 landscape:h-8 rounded-full bg-emerald-500/50 flex items-center justify-center overflow-hidden border-2 border-emerald-400">
               <img src={user.photoURL || ''} alt={user.displayName || ''} referrerPolicy="no-referrer" />

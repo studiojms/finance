@@ -196,3 +196,88 @@ describe('DatabaseService - bulkDeleteUserDocuments', () => {
     expect(deletedCount).toBe(2);
   });
 });
+
+describe('DatabaseService - executeBatchWrite', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (ConnectionService.isOnline as any).mockReturnValue(true);
+  });
+
+  it('executes batch operations when online', async () => {
+    const mockBatch = {
+      set: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      commit: vi.fn(() => Promise.resolve()),
+    };
+
+    (writeBatch as any).mockReturnValue(mockBatch);
+
+    const operations = [
+      { type: 'create' as const, collection: 'transactions', data: { userId: 'user1', amount: 100 } },
+      { type: 'update' as const, collection: 'accounts', documentId: 'acc1', data: { balance: 500 } },
+      { type: 'delete' as const, collection: 'transactions', documentId: 'trans1' },
+    ];
+
+    await DatabaseService.executeBatchWrite(operations);
+
+    expect(mockBatch.set).toHaveBeenCalledTimes(1);
+    expect(mockBatch.update).toHaveBeenCalledTimes(1);
+    expect(mockBatch.delete).toHaveBeenCalledTimes(1);
+    expect(mockBatch.commit).toHaveBeenCalledTimes(1);
+  });
+
+  it('queues operations when offline', async () => {
+    (ConnectionService.isOnline as any).mockReturnValue(false);
+
+    const operations = [
+      { type: 'create' as const, collection: 'transactions', data: { userId: 'user1', amount: 100 } },
+      { type: 'update' as const, collection: 'accounts', documentId: 'acc1', data: { balance: 500 } },
+    ];
+
+    await DatabaseService.executeBatchWrite(operations);
+
+    expect(LocalStorageService.addOperation).toHaveBeenCalledTimes(2);
+    expect(LocalStorageService.addOperation).toHaveBeenCalledWith(operations[0]);
+    expect(LocalStorageService.addOperation).toHaveBeenCalledWith(operations[1]);
+  });
+
+  it('saves to local storage immediately for optimistic updates', async () => {
+    (ConnectionService.isOnline as any).mockReturnValue(true);
+
+    const mockBatch = {
+      set: vi.fn(),
+      commit: vi.fn(() => Promise.resolve()),
+    };
+
+    (writeBatch as any).mockReturnValue(mockBatch);
+
+    const operations = [
+      {
+        type: 'create' as const,
+        collection: 'transactions',
+        data: { userId: 'user1', amount: 100, description: 'Test' },
+      },
+    ];
+
+    await DatabaseService.executeBatchWrite(operations);
+
+    expect(LocalStorageService.saveDocument).toHaveBeenCalled();
+  });
+
+  it('queues operations on error when online', async () => {
+    const mockBatch = {
+      set: vi.fn(),
+      commit: vi.fn(() => Promise.reject(new Error('Network error'))),
+    };
+
+    (writeBatch as any).mockReturnValue(mockBatch);
+
+    const operations = [
+      { type: 'create' as const, collection: 'transactions', data: { userId: 'user1', amount: 100 } },
+    ];
+
+    await expect(DatabaseService.executeBatchWrite(operations)).rejects.toThrow('Network error');
+    expect(LocalStorageService.addOperation).toHaveBeenCalled();
+  });
+});
