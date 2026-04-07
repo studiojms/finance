@@ -290,15 +290,15 @@ export function TransactionModal({
 
         if (isNew) {
           const diff = t.type === 'income' ? t.amount : -t.amount;
-          batch.update(doc(db, 'accounts', t.accountId), { balance: increment(diff) });
+          batch.update(doc(db!, 'accounts', t.accountId), { balance: increment(diff) });
         } else if (oldT) {
           if (oldT.isConsolidated) {
             const diff = oldT.type === 'income' ? -oldT.amount : oldT.amount;
-            batch.update(doc(db, 'accounts', oldT.accountId), { balance: increment(diff) });
+            batch.update(doc(db!, 'accounts', oldT.accountId), { balance: increment(diff) });
           }
           if (t.isConsolidated) {
             const diff = t.type === 'income' ? t.amount : -t.amount;
-            batch.update(doc(db, 'accounts', t.accountId), { balance: increment(diff) });
+            batch.update(doc(db!, 'accounts', t.accountId), { balance: increment(diff) });
           }
         }
       };
@@ -317,7 +317,7 @@ export function TransactionModal({
       ) => {
         const transferId = crypto.randomUUID();
 
-        const expenseRef = doc(collection(db, 'transactions'));
+        const expenseRef = doc(collection(db!, 'transactions'));
         const expenseTransaction = {
           description: desc,
           amount: amt,
@@ -336,7 +336,7 @@ export function TransactionModal({
         batch.set(expenseRef, expenseTransaction);
         updateBalance(expenseTransaction, true);
 
-        const incomeRef = doc(collection(db, 'transactions'));
+        const incomeRef = doc(collection(db!, 'transactions'));
         const incomeTransaction = {
           description: desc,
           amount: amt,
@@ -357,7 +357,76 @@ export function TransactionModal({
       };
 
       if (editingTransaction) {
-        if (editMode === 'future' && editingTransaction.installmentId) {
+        if (editingTransaction.transferId) {
+          // Handle transfer edits - update both paired transactions
+          const pairedTransactions = transactions.filter((t) => t.transferId === editingTransaction.transferId);
+
+          if (editMode === 'future' && editingTransaction.installmentId) {
+            // For future edits of installment transfers
+            const q = query(
+              collection(db!, 'transactions'),
+              where('transferId', '==', editingTransaction.transferId),
+              where('userId', '==', userId)
+            );
+            const snap = await getDocs(q);
+            const allPairedDocs = snap.docs.filter(
+              (d) => (d.data().installmentNumber || 0) >= (editingTransaction.installmentNumber || 0)
+            );
+
+            allPairedDocs.forEach((d) => {
+              const dData = d.data() as Transaction;
+              const indexDiff = (dData.installmentNumber || 1) - (editingTransaction.installmentNumber || 1);
+              const newDate = getNextDate(new Date(date), frequency, indexDiff);
+
+              const descriptionWithSuffix =
+                dData.totalInstallments === null
+                  ? `${description} (#${dData.installmentNumber})`
+                  : dData.totalInstallments
+                    ? `${description} (${dData.installmentNumber}/${dData.totalInstallments})`
+                    : description;
+
+              const updatedT = {
+                description: descriptionWithSuffix,
+                amount: numericAmount,
+                date: newDate.toISOString(),
+                accountId: dData.type === 'expense' ? accountId : toAccountId,
+                categoryId: 'transfer',
+                type: dData.type,
+                isConsolidated: dData.isConsolidated,
+                userId,
+                transferId: dData.transferId,
+                installmentId: dData.installmentId,
+                installmentNumber: dData.installmentNumber,
+                totalInstallments: dData.totalInstallments,
+                frequency,
+              };
+              batch.update(d.ref, updatedT);
+              updateBalance(updatedT, false, dData);
+            });
+          } else {
+            // For single transfer edits, update both transactions
+            pairedTransactions.forEach((t) => {
+              const updatedT = {
+                description,
+                amount: numericAmount,
+                date: new Date(date + 'T12:00:00').toISOString(),
+                accountId: t.type === 'expense' ? accountId : toAccountId,
+                categoryId: 'transfer',
+                type: t.type,
+                isConsolidated: t.isConsolidated,
+                userId,
+                transferId: t.transferId,
+                toAccountId: t.type === 'expense' ? toAccountId : accountId,
+                frequency: t.frequency,
+                installmentId: t.installmentId,
+                installmentNumber: t.installmentNumber,
+                totalInstallments: t.totalInstallments,
+              };
+              batch.update(doc(db!, 'transactions', t.id), updatedT);
+              updateBalance(updatedT, false, t);
+            });
+          }
+        } else if (editMode === 'future' && editingTransaction.installmentId) {
           const q = query(
             collection(db, 'transactions'),
             where('installmentId', '==', editingTransaction.installmentId),

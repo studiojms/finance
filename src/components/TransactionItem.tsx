@@ -1,5 +1,5 @@
 import React from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isToday, isBefore, startOfToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CheckCircle2, Trash2 } from 'lucide-react';
 import { Transaction, Category, Account } from '../types';
@@ -22,9 +22,17 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const transactionDate = parseISO(transaction.date);
+  const today = startOfToday();
+  const isOverdue = !transaction.isConsolidated && isBefore(transactionDate, today);
+  const isDueToday = !transaction.isConsolidated && isToday(transactionDate);
+
   return (
     <div
-      className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4 active:bg-slate-50 transition-colors group"
+      className={cn(
+        'p-4 rounded-3xl shadow-sm border flex items-center gap-4 active:bg-slate-50 transition-colors group',
+        isOverdue ? 'bg-yellow-50 border-orange-200' : 'bg-white border-slate-100'
+      )}
       onClick={onEdit}
     >
       <button
@@ -43,7 +51,9 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
       <div className="flex-1">
         <div className="flex justify-between items-start">
           <div className="flex flex-col">
-            <h4 className="font-bold text-slate-800 leading-tight">{transaction.description}</h4>
+            <h4 className={cn('leading-tight text-slate-800', isOverdue || isDueToday ? 'font-black' : 'font-bold')}>
+              {transaction.description}
+            </h4>
             {account && (
               <div className="flex items-center gap-1 mt-0.5">
                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: account.color }} />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, TrendingUp, Calendar, LogOut, Trash2 } from 'lucide-react';
+import { X, TrendingUp, Calendar, LogOut, Trash2, Bell } from 'lucide-react';
 import { cn } from '../../utils';
 import { AuthUser } from '../../services/authService';
 
@@ -14,6 +14,10 @@ interface UserSettingsModalProps {
   setTransactionSortOrder: (value: (prev: 'asc' | 'desc') => 'asc' | 'desc') => void;
   onLogout: () => void;
   onEraseData: () => void;
+  notificationPermission?: boolean;
+  onRequestNotifications?: () => Promise<void>;
+  onTestNotification?: () => void;
+  isNotificationSupported?: boolean;
 }
 
 export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
@@ -22,6 +26,10 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   user,
   includePreviousBalance,
   setIncludePreviousBalance,
+  notificationPermission = false,
+  onRequestNotifications,
+  onTestNotification,
+  isNotificationSupported = false,
   transactionSortOrder,
   setTransactionSortOrder,
   onEraseData,
@@ -112,6 +120,39 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                     Alterar
                   </button>
                 </div>
+
+                {isNotificationSupported && (
+                  <div className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-3xl shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center">
+                        <Bell size={20} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800">Notificações de Atraso</p>
+                        <p className="text-[10px] text-slate-400">
+                          {notificationPermission
+                            ? 'Receba alertas sobre transações atrasadas'
+                            : 'Permita notificações para receber alertas'}
+                        </p>
+                      </div>
+                    </div>
+                    {notificationPermission ? (
+                      <button
+                        onClick={onTestNotification}
+                        className="px-4 py-2 bg-violet-100 hover:bg-violet-200 rounded-2xl text-xs font-bold text-violet-600 transition-colors"
+                      >
+                        Testar
+                      </button>
+                    ) : (
+                      <button
+                        onClick={onRequestNotifications}
+                        className="px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-2xl text-xs font-bold text-white transition-colors"
+                      >
+                        Ativar
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">

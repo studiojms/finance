@@ -254,4 +254,110 @@ describe('TransactionItem', () => {
 
     expect(screen.getByText('Transferência')).toBeInTheDocument();
   });
+
+  describe('Visual styling based on transaction date', () => {
+    it('applies overdue styling for unconsolidated transactions before today', () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const overdueTransaction = {
+        ...mockTransaction,
+        date: yesterday.toISOString(),
+        isConsolidated: false,
+      };
+
+      const { container } = render(
+        <TransactionItem
+          transaction={overdueTransaction}
+          category={mockCategory}
+          account={mockAccount}
+          onToggle={mockOnToggle}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />
+      );
+
+      const transactionDiv = container.querySelector('.bg-yellow-50');
+      expect(transactionDiv).toBeInTheDocument();
+      expect(transactionDiv).toHaveClass('border-orange-200');
+
+      const description = screen.getByText('Supermercado');
+      expect(description).toHaveClass('font-black');
+    });
+
+    it('applies due today styling for unconsolidated transactions on today', () => {
+      const today = new Date();
+      const todayTransaction = {
+        ...mockTransaction,
+        date: today.toISOString(),
+        isConsolidated: false,
+      };
+
+      render(
+        <TransactionItem
+          transaction={todayTransaction}
+          category={mockCategory}
+          account={mockAccount}
+          onToggle={mockOnToggle}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />
+      );
+
+      const description = screen.getByText('Supermercado');
+      expect(description).toHaveClass('font-black');
+    });
+
+    it('does not apply overdue styling for consolidated transactions', () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const consolidatedTransaction = {
+        ...mockTransaction,
+        date: yesterday.toISOString(),
+        isConsolidated: true,
+      };
+
+      const { container } = render(
+        <TransactionItem
+          transaction={consolidatedTransaction}
+          category={mockCategory}
+          account={mockAccount}
+          onToggle={mockOnToggle}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />
+      );
+
+      const transactionDiv = container.querySelector('.bg-white');
+      expect(transactionDiv).toBeInTheDocument();
+      const yellowBgDiv = container.querySelector('.bg-yellow-50');
+      expect(yellowBgDiv).not.toBeInTheDocument();
+    });
+
+    it('applies normal styling for future transactions', () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const futureTransaction = {
+        ...mockTransaction,
+        date: tomorrow.toISOString(),
+        isConsolidated: false,
+      };
+
+      const { container } = render(
+        <TransactionItem
+          transaction={futureTransaction}
+          category={mockCategory}
+          account={mockAccount}
+          onToggle={mockOnToggle}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />
+      );
+
+      const transactionDiv = container.querySelector('.bg-white');
+      expect(transactionDiv).toBeInTheDocument();
+      const description = screen.getByText('Supermercado');
+      expect(description).toHaveClass('font-bold');
+      expect(description).not.toHaveClass('font-black');
+    });
+  });
 });

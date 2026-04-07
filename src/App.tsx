@@ -40,6 +40,7 @@ import { useTransactionOperations } from './hooks/useTransactionOperations';
 import { useCSVImport } from './hooks/useCSVImport';
 import { useTransactionCalculations } from './hooks/useTransactionCalculations';
 import { useModalState } from './hooks/useModalState';
+import { useOverdueNotifications } from './hooks/useOverdueNotifications';
 import { CSVService } from './services/csvService';
 import { APP_CONFIG } from './config';
 import { analytics, logEvent } from './firebase';
@@ -83,6 +84,9 @@ export default function App() {
 
   // Modal state management
   const modalState = useModalState();
+
+  // Overdue notifications
+  const notificationState = useOverdueNotifications(transactions, !!user);
 
   // Helper function to handle transaction deletion
   const handleDeleteTransaction = (transaction: Transaction) => {
@@ -713,6 +717,10 @@ export default function App() {
         setTransactionSortOrder={setTransactionSortOrder}
         onLogout={handleLogout}
         onEraseData={() => setIsDataErasureModalOpen(true)}
+        notificationPermission={notificationState.hasPermission}
+        onRequestNotifications={notificationState.requestPermission}
+        onTestNotification={notificationState.testNotification}
+        isNotificationSupported={notificationState.isSupported}
       />
       <DataErasureModal
         isOpen={isDataErasureModalOpen}

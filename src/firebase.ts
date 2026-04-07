@@ -3,6 +3,7 @@ import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence, Firestore } from 'firebase/firestore';
 import { getAnalytics, logEvent, Analytics } from 'firebase/analytics';
 import { APP_CONFIG } from './config';
+import { NotificationService } from './services/notificationService';
 
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
@@ -33,7 +34,12 @@ if (APP_CONFIG.backend === 'firebase' && APP_CONFIG.firebase.apiKey) {
     if (APP_CONFIG.firebase.measurementId) {
       analytics = getAnalytics(app);
     }
+
+    // Initialize push notifications
+    NotificationService.initialize(app).catch((err) => {
+      console.warn('Failed to initialize push notifications:', err);
+    });
   }
 }
 
-export { db, auth, analytics, logEvent };
+export { db, auth, analytics, logEvent, app };
