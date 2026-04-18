@@ -3,6 +3,31 @@ import userEvent from '@testing-library/user-event';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 import App from './App';
 
+vi.mock('./config', () => ({
+  APP_CONFIG: {
+    backend: 'firebase',
+    firebase: {
+      apiKey: 'test-api-key',
+      authDomain: 'test.firebaseapp.com',
+      projectId: 'test-project',
+      storageBucket: 'test.appspot.com',
+      messagingSenderId: '123456789',
+      appId: 'test-app-id',
+      databaseId: 'test-db',
+      measurementId: 'test-measurement-id',
+    },
+    supabase: {
+      url: undefined,
+      anonKey: undefined,
+    },
+    database: {
+      url: undefined,
+    },
+  },
+  isFirebase: () => true,
+  isSupabase: () => false,
+}));
+
 vi.mock('./firebase', () => ({
   db: null,
   analytics: null,
