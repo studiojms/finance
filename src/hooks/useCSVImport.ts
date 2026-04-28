@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { writeBatch, doc, collection, increment } from 'firebase/firestore';
-import { db } from '../firebase';
+import { DatabaseService } from '../services/databaseService';
 import { CSVService } from '../services/csvService';
 import { Account, Category } from '../types';
 import { format } from 'date-fns';
-import { handleFirestoreError } from '../services/errorService';
+import { isFirebase } from '../config';
 
 export interface UseCSVImportReturn {
   isImporting: boolean;
@@ -21,12 +20,6 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
   const [importError, setImportError] = useState('');
 
   const importFromCSV = async (file: File) => {
-    if (!db) {
-      setImportError('Database not initialized');
-      setImportStatus('error');
-      return;
-    }
-
     try {
       const text = await CSVService.readCSVFile(file);
       const rows = CSVService.parseCSVContent(text);
@@ -52,9 +45,8 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
 
       for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
         const chunk = rows.slice(i, i + CHUNK_SIZE);
-        const batch = writeBatch(db);
+        const operations: any[] = [];
         const accountBalanceChanges: Record<string, number> = {};
-        let hasOps = false;
 
         for (const row of chunk) {
           const dateObj = CSVService.parseDate(row.date);
@@ -77,17 +69,34 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
             accounts.find((a) => a.name.toLowerCase() === row.account.toLowerCase())?.id ||
             tempAccounts[row.account.toLowerCase()];
           if (!accountId) {
-            const accRef = doc(collection(db, 'accounts'));
-            accountId = accRef.id;
+            accountId = `temp_acc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             tempAccounts[row.account.toLowerCase()] = accountId;
-            batch.set(accRef, {
-              name: row.account,
-              type: 'checking',
-              balance: 0,
-              initialBalance: 0,
-              initialBalanceDate: format(new Date(), 'yyyy-MM-dd'),
-              color: '#94a3b8',
-              userId,
+
+            const accountData = isFirebase()
+              ? {
+                  name: row.account,
+                  type: 'checking',
+                  balance: 0,
+                  initialBalance: 0,
+                  initialBalanceDate: format(new Date(), 'yyyy-MM-dd'),
+                  color: '#94a3b8',
+                  userId,
+                }
+              : {
+                  name: row.account,
+                  type: 'checking',
+                  balance: 0,
+                  initial_balance: 0,
+                  initial_balance_date: format(new Date(), 'yyyy-MM-dd'),
+                  color: '#94a3b8',
+                  user_id: userId,
+                };
+
+            operations.push({
+              type: 'create',
+              collection: 'accounts',
+              documentId: accountId,
+              data: accountData,
             });
           }
 
@@ -96,49 +105,86 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
               (c) => c.name.toLowerCase() === row.category.toLowerCase() && (c.type === type || c.type === 'both')
             )?.id || tempCategories[row.category.toLowerCase() + type];
           if (!categoryId) {
-            const catRef = doc(collection(db, 'categories'));
-            categoryId = catRef.id;
+            categoryId = `temp_cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             tempCategories[row.category.toLowerCase() + type] = categoryId;
-            batch.set(catRef, {
-              name: row.category,
-              icon: 'Plus',
-              color: '#94a3b8',
-              type: type,
-              userId,
+
+            const categoryData = isFirebase()
+              ? {
+                  name: row.category,
+                  icon: 'Plus',
+                  color: '#94a3b8',
+                  type: type,
+                  userId,
+                }
+              : {
+                  name: row.category,
+                  icon: 'Plus',
+                  color: '#94a3b8',
+                  type: type,
+                  user_id: userId,
+                };
+
+            operations.push({
+              type: 'create',
+              collection: 'categories',
+              documentId: categoryId,
+              data: categoryData,
             });
           }
 
-          const tRef = doc(collection(db, 'transactions'));
-          batch.set(tRef, {
-            description: row.description,
-            amount: absAmount,
-            date,
-            accountId,
-            categoryId,
-            type,
-            isConsolidated: dateObj <= new Date(),
-            userId,
+          const transactionId = `temp_txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const transactionData = isFirebase()
+            ? {
+                description: row.description,
+                amount: absAmount,
+                date,
+                accountId,
+                categoryId,
+                type,
+                isConsolidated: dateObj <= new Date(),
+                userId,
+              }
+            : {
+                description: row.description,
+                amount: absAmount,
+                date,
+                account_id: accountId,
+                category_id: categoryId,
+                type,
+                is_consolidated: dateObj <= new Date(),
+                user_id: userId,
+              };
+
+          operations.push({
+            type: 'create',
+            collection: 'transactions',
+            documentId: transactionId,
+            data: transactionData,
           });
 
           accountBalanceChanges[accountId] = (accountBalanceChanges[accountId] || 0) + parsedAmount;
-          hasOps = true;
         }
 
-        if (hasOps) {
-          for (const accId in accountBalanceChanges) {
-            const accRef = doc(db, 'accounts', accId);
-            batch.update(accRef, { balance: increment(accountBalanceChanges[accId]) });
-          }
+        for (const accId in accountBalanceChanges) {
+          operations.push({
+            type: 'increment',
+            collection: 'accounts',
+            documentId: accId,
+            field: 'balance',
+            value: accountBalanceChanges[accId],
+          });
+        }
 
+        if (operations.length > 0) {
           try {
-            await batch.commit();
+            await DatabaseService.executeBatchWrite(operations);
             const currentChunk = Math.floor(i / CHUNK_SIZE) + 1;
             setImportProgress(Math.round((currentChunk / totalChunks) * 100));
           } catch (err: unknown) {
             setImportStatus('error');
             setImportError((err as Error).message || 'Error processing batch.');
             setIsImporting(false);
-            handleFirestoreError(err, 'write', 'import');
+            console.error('Import error:', err);
             return;
           }
         }

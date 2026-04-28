@@ -11,6 +11,7 @@ import {
   getDocs,
   Timestamp,
   writeBatch,
+  increment,
 } from 'firebase/firestore';
 import { db as firebaseDb } from '../firebase';
 import { supabase } from '../supabase';
@@ -116,7 +117,7 @@ export class DatabaseService {
     try {
       const documents = await LocalStorageService.getDocuments(collectionName, userId);
       return documents.map((doc) => {
-        const { collection, timestamp, ...rest } = doc;
+        const { collection: _collection, timestamp: _timestamp, ...rest } = doc;
         return rest as DatabaseDocument;
       });
     } catch (error) {
@@ -214,6 +215,60 @@ export class DatabaseService {
     }
   }
 
+  static async incrementField(collectionName: string, docId: string, field: string, value: number): Promise<void> {
+    if (!ConnectionService.isOnline()) {
+      const existingDoc = await LocalStorageService.getDocument(docId);
+      if (existingDoc) {
+        const currentValue = (existingDoc as any)[field] || 0;
+        await LocalStorageService.saveDocument(collectionName, (existingDoc as any).userId || '', {
+          ...existingDoc,
+          [field]: currentValue + value,
+        } as Record<string, unknown>);
+      }
+
+      await LocalStorageService.addOperation({
+        type: 'update',
+        collection: collectionName,
+        documentId: docId,
+        data: { [field]: value, _increment: true },
+      });
+      return;
+    }
+
+    try {
+      if (isFirebase() && firebaseDb) {
+        await updateDoc(doc(firebaseDb, collectionName, docId), { [field]: increment(value) });
+      } else if (isSupabase() && supabase) {
+        const { data: currentDoc } = await supabase.from(collectionName).select(field).eq('id', docId).single();
+        if (currentDoc) {
+          const currentValue = currentDoc[field] || 0;
+          const { error } = await supabase
+            .from(collectionName)
+            .update({ [field]: currentValue + value })
+            .eq('id', docId);
+          if (error) throw error;
+        }
+      }
+
+      const existingDoc = await LocalStorageService.getDocument(docId);
+      if (existingDoc) {
+        const currentValue = (existingDoc as any)[field] || 0;
+        await LocalStorageService.saveDocument(collectionName, (existingDoc as any).userId || '', {
+          ...existingDoc,
+          [field]: currentValue + value,
+        } as Record<string, unknown>);
+      }
+    } catch (error) {
+      console.error('Failed to increment field online, queuing for sync:', error);
+      await LocalStorageService.addOperation({
+        type: 'update',
+        collection: collectionName,
+        documentId: docId,
+        data: { [field]: value, _increment: true },
+      });
+    }
+  }
+
   static async deleteDocument(collectionName: string, docId: string): Promise<void> {
     // Delete from local storage immediately
     await LocalStorageService.deleteDocument(docId);
@@ -250,7 +305,11 @@ export class DatabaseService {
     // Try local storage first
     const cachedDoc = await LocalStorageService.getDocument(docId);
     if (cachedDoc && !ConnectionService.isOnline()) {
-      const { collection, timestamp, ...rest } = cachedDoc as Record<string, unknown> & {
+      const {
+        collection: _collection,
+        timestamp: _timestamp,
+        ...rest
+      } = cachedDoc as Record<string, unknown> & {
         collection?: string;
         timestamp?: number;
       };
@@ -342,12 +401,13 @@ export class DatabaseService {
     }
 
     if (isFirebase() && firebaseDb) {
-      const q = query(collection(firebaseDb, collectionName), where('userId', '==', userId));
+      const db = firebaseDb;
+      const q = query(collection(db, collectionName), where('userId', '==', userId));
       const snapshot = await getDocs(q);
 
       const batchSize = 500;
       const batches: any[] = [];
-      let currentBatch = writeBatch(firebaseDb);
+      let currentBatch = writeBatch(db);
       let operationCount = 0;
 
       snapshot.docs.forEach((docSnapshot) => {
@@ -357,7 +417,7 @@ export class DatabaseService {
 
         if (operationCount >= batchSize) {
           batches.push(currentBatch);
-          currentBatch = writeBatch(firebaseDb);
+          currentBatch = writeBatch(db);
           operationCount = 0;
         }
       });
@@ -401,26 +461,48 @@ export class DatabaseService {
    */
   static async executeBatchWrite(
     operations: Array<{
-      type: 'create' | 'update' | 'delete';
+      type: 'create' | 'update' | 'delete' | 'increment';
       collection: string;
       documentId?: string;
       data?: any;
+      field?: string;
+      value?: number;
     }>
   ): Promise<void> {
     // Save to local storage immediately (optimistic update)
     for (const operation of operations) {
-      const { type, collection: collectionName, documentId, data } = operation;
+      const { type, collection: collectionName, documentId, data, field, value } = operation;
 
       if (type === 'create' && data) {
         const tempId = documentId || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        await LocalStorageService.saveDocument(collectionName, data.userId || '', { ...data, id: tempId });
+        await LocalStorageService.saveDocument(collectionName, data.userId || data.user_id || '', {
+          ...data,
+          id: tempId,
+        });
       } else if (type === 'update' && documentId && data) {
         const existingDoc = await LocalStorageService.getDocument(documentId);
         if (existingDoc) {
-          await LocalStorageService.saveDocument(collectionName, (existingDoc as any).userId || '', {
-            ...existingDoc,
-            ...data,
-          });
+          await LocalStorageService.saveDocument(
+            collectionName,
+            (existingDoc as any).userId || (existingDoc as any).user_id || '',
+            {
+              ...existingDoc,
+              ...data,
+            }
+          );
+        }
+      } else if (type === 'increment' && documentId && field && value !== undefined) {
+        const existingDoc = await LocalStorageService.getDocument(documentId);
+        if (existingDoc) {
+          const currentValue = (existingDoc as any)[field] || 0;
+          await LocalStorageService.saveDocument(
+            collectionName,
+            (existingDoc as any).userId || (existingDoc as any).user_id || '',
+            {
+              ...existingDoc,
+              [field]: currentValue + value,
+            }
+          );
         }
       } else if (type === 'delete' && documentId) {
         await LocalStorageService.deleteDocument(documentId);
@@ -441,7 +523,7 @@ export class DatabaseService {
         const batch = writeBatch(firebaseDb);
 
         for (const operation of operations) {
-          const { type, collection: collectionName, documentId, data } = operation;
+          const { type, collection: collectionName, documentId, data, field, value } = operation;
 
           if (type === 'create' && data) {
             const docRef = documentId
@@ -451,6 +533,9 @@ export class DatabaseService {
           } else if (type === 'update' && documentId && data) {
             const docRef = doc(firebaseDb, collectionName, documentId);
             batch.update(docRef, data);
+          } else if (type === 'increment' && documentId && field && value !== undefined) {
+            const docRef = doc(firebaseDb, collectionName, documentId);
+            batch.update(docRef, { [field]: increment(value) });
           } else if (type === 'delete' && documentId) {
             const docRef = doc(firebaseDb, collectionName, documentId);
             batch.delete(docRef);
@@ -461,12 +546,25 @@ export class DatabaseService {
       } else if (isSupabase() && supabase) {
         // Supabase doesn't have batch operations, execute sequentially
         for (const operation of operations) {
-          const { type, collection: collectionName, documentId, data } = operation;
+          const { type, collection: collectionName, documentId, data, field, value } = operation;
 
           if (type === 'create') {
             await supabase.from(collectionName).insert([data]);
           } else if (type === 'update' && documentId) {
             await supabase.from(collectionName).update(data).eq('id', documentId);
+          } else if (type === 'increment' && documentId && field && value !== undefined) {
+            const { data: currentDoc } = await supabase
+              .from(collectionName)
+              .select(field)
+              .eq('id', documentId)
+              .single();
+            if (currentDoc) {
+              const currentValue = currentDoc[field] || 0;
+              await supabase
+                .from(collectionName)
+                .update({ [field]: currentValue + value })
+                .eq('id', documentId);
+            }
           } else if (type === 'delete' && documentId) {
             await supabase.from(collectionName).delete().eq('id', documentId);
           }
