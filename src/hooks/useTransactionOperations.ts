@@ -1,7 +1,6 @@
-import { writeBatch, doc, increment } from 'firebase/firestore';
-import { db } from '../firebase';
 import { Transaction } from '../types';
-import { handleFirestoreError } from '../services/errorService';
+import { DatabaseService } from '../services/databaseService';
+import { isFirebase } from '../config';
 
 export interface UseTransactionOperationsReturn {
   toggleConsolidated: (transaction: Transaction) => Promise<void>;
@@ -10,56 +9,73 @@ export interface UseTransactionOperationsReturn {
 
 export function useTransactionOperations(transactions: Transaction[]): UseTransactionOperationsReturn {
   const toggleConsolidated = async (transaction: Transaction) => {
-    if (!db) {
-      console.error('Database not initialized');
-      return;
-    }
-
     try {
-      const batch = writeBatch(db);
       const newStatus = !transaction.isConsolidated;
+      const operations: any[] = [];
 
       if (transaction.transferId) {
         const pairedTransactions = transactions.filter((t) => t.transferId === transaction.transferId);
 
         pairedTransactions.forEach((t) => {
-          const docRef = doc(db, 'transactions', t.id);
-          batch.update(docRef, { isConsolidated: newStatus });
+          operations.push({
+            type: 'update',
+            collection: 'transactions',
+            documentId: t.id,
+            data: isFirebase() ? { isConsolidated: newStatus } : { is_consolidated: newStatus },
+          });
 
           const diff = t.amount * (newStatus ? 1 : -1);
-          const accountRef = doc(db, 'accounts', t.accountId);
           const accountDiff = t.type === 'income' ? diff : -diff;
-          batch.update(accountRef, { balance: increment(accountDiff) });
+
+          operations.push({
+            type: 'increment',
+            collection: 'accounts',
+            documentId: t.accountId,
+            field: 'balance',
+            value: accountDiff,
+          });
         });
       } else {
-        const docRef = doc(db, 'transactions', transaction.id);
-        batch.update(docRef, { isConsolidated: newStatus });
+        operations.push({
+          type: 'update',
+          collection: 'transactions',
+          documentId: transaction.id,
+          data: isFirebase() ? { isConsolidated: newStatus } : { is_consolidated: newStatus },
+        });
 
         const diff = transaction.amount * (newStatus ? 1 : -1);
-        const accountRef = doc(db, 'accounts', transaction.accountId);
         const accountDiff = transaction.type === 'income' ? diff : -diff;
-        batch.update(accountRef, { balance: increment(accountDiff) });
+
+        operations.push({
+          type: 'increment',
+          collection: 'accounts',
+          documentId: transaction.accountId,
+          field: 'balance',
+          value: accountDiff,
+        });
       }
 
-      await batch.commit();
+      await DatabaseService.executeBatchWrite(operations);
     } catch (err) {
-      handleFirestoreError(err, 'update', `transactions/${transaction.id}`);
+      console.error('Failed to toggle consolidated status:', err);
+      throw err;
     }
   };
 
   const deleteTransaction = async (transaction: Transaction, mode: 'only' | 'future' = 'only') => {
-    if (!db) {
-      console.error('Database not initialized');
-      return;
-    }
-
     try {
-      const batch = writeBatch(db);
+      const operations: any[] = [];
 
       const reverseBalance = (t: Transaction) => {
         if (!t.isConsolidated) return;
         const diff = t.type === 'income' ? -t.amount : t.amount;
-        batch.update(doc(db, 'accounts', t.accountId), { balance: increment(diff) });
+        operations.push({
+          type: 'increment',
+          collection: 'accounts',
+          documentId: t.accountId,
+          field: 'balance',
+          value: diff,
+        });
       };
 
       if (transaction.transferId) {
@@ -67,7 +83,11 @@ export function useTransactionOperations(transactions: Transaction[]): UseTransa
 
         if (mode === 'only' || !transaction.installmentId) {
           pairedTransactions.forEach((t) => {
-            batch.delete(doc(db, 'transactions', t.id));
+            operations.push({
+              type: 'delete',
+              collection: 'transactions',
+              documentId: t.id,
+            });
             reverseBalance(t);
           });
         } else {
@@ -78,13 +98,21 @@ export function useTransactionOperations(transactions: Transaction[]): UseTransa
                 (t.installmentNumber || 0) >= (paired.installmentNumber || 0)
             );
             futurePaired.forEach((t) => {
-              batch.delete(doc(db, 'transactions', t.id));
+              operations.push({
+                type: 'delete',
+                collection: 'transactions',
+                documentId: t.id,
+              });
               reverseBalance(t);
             });
           });
         }
       } else if (mode === 'only' || !transaction.installmentId) {
-        batch.delete(doc(db, 'transactions', transaction.id));
+        operations.push({
+          type: 'delete',
+          collection: 'transactions',
+          documentId: transaction.id,
+        });
         reverseBalance(transaction);
       } else {
         const future = transactions.filter(
@@ -93,14 +121,19 @@ export function useTransactionOperations(transactions: Transaction[]): UseTransa
             (t.installmentNumber || 0) >= (transaction.installmentNumber || 0)
         );
         future.forEach((t) => {
-          batch.delete(doc(db, 'transactions', t.id));
+          operations.push({
+            type: 'delete',
+            collection: 'transactions',
+            documentId: t.id,
+          });
           reverseBalance(t);
         });
       }
 
-      await batch.commit();
+      await DatabaseService.executeBatchWrite(operations);
     } catch (err) {
-      handleFirestoreError(err, 'delete', 'transactions');
+      console.error('Failed to delete transaction:', err);
+      throw err;
     }
   };
 

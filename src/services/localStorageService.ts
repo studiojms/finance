@@ -7,10 +7,12 @@ const DB_VERSION = 1;
 
 export interface OfflineOperation {
   id: string;
-  type: 'create' | 'update' | 'delete';
+  type: 'create' | 'update' | 'delete' | 'increment';
   collection: string;
   documentId?: string;
   data?: Record<string, unknown>;
+  field?: string;
+  value?: number;
   timestamp: number;
   synced: boolean;
 }

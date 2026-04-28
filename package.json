@@ -12,7 +12,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
@@ -24,7 +24,8 @@
     "docker:build": "docker-compose build --no-cache",
     "db:connect": "docker-compose exec postgres psql -U postgres -d finance_pro",
     "db:backup": "docker-compose exec postgres pg_dump -U postgres finance_pro > backup_$(date +%Y%m%d_%H%M%S).sql",
-    "db:reset": "docker-compose down -v && docker-compose up -d postgres"
+    "db:reset": "docker-compose down -v && docker-compose up -d postgres",
+    "migrate:firebase-to-supabase": "tsx scripts/migrate-firebase-to-supabase.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

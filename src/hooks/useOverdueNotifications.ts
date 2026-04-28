@@ -55,7 +55,7 @@ export function useOverdueNotifications(transactions: Transaction[], enabled: bo
     };
   }, [transactions, enabled]);
 
-  const requestPermission = async () => {
+  const requestPermission = async (): Promise<void> => {
     const granted = await NotificationService.requestPermission();
 
     if (granted) {
@@ -67,8 +67,6 @@ export function useOverdueNotifications(transactions: Transaction[], enabled: bo
         hasShownTodayRef.current = true;
       }
     }
-
-    return granted;
   };
 
   const testNotification = () => {
