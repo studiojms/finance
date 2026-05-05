@@ -1,6 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, Firestore } from 'firebase/firestore';
+import { getFirestore, enableMultiTabIndexedDbPersistence, Firestore } from 'firebase/firestore';
 import { getAnalytics, logEvent, Analytics } from 'firebase/analytics';
 import { APP_CONFIG } from './config';
 import { NotificationService } from './services/notificationService';
@@ -23,11 +23,13 @@ if (APP_CONFIG.backend === 'firebase' && APP_CONFIG.firebase.apiKey) {
   auth = getAuth(app);
 
   if (typeof window !== 'undefined') {
-    enableIndexedDbPersistence(db).catch((err) => {
+    enableMultiTabIndexedDbPersistence(db).catch((err) => {
       if (err.code === 'failed-precondition') {
-        console.warn('Firestore persistence failed-precondition');
+        console.warn('Firestore multi-tab persistence failed: Another tab may already have persistence enabled');
       } else if (err.code === 'unimplemented') {
-        console.warn('Firestore persistence unimplemented');
+        console.warn('Firestore persistence is not available in this browser');
+      } else {
+        console.warn('Failed to enable Firestore persistence:', err);
       }
     });
 

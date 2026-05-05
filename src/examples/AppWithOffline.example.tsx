@@ -48,7 +48,8 @@ function App() {
  * STEP 2: How Offline Mode Works
  *
  * Firebase Persistence (Automatic):
- * - enableIndexedDbPersistence() is enabled in firebase.ts
+ * - enableMultiTabIndexedDbPersistence() is enabled in firebase.ts
+ * - Supports multiple tabs/windows accessing the same data
  * - Firebase automatically caches all queries and listens to local data
  * - Read operations work instantly from cache when offline
  * - Write operations are queued by Firebase and synced when online
