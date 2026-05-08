@@ -25,6 +25,8 @@
     "db:connect": "docker-compose exec postgres psql -U postgres -d finance_pro",
     "db:backup": "docker-compose exec postgres pg_dump -U postgres finance_pro > backup_$(date +%Y%m%d_%H%M%S).sql",
     "db:reset": "docker-compose down -v && docker-compose up -d postgres",
+    "supabase:push": "npx supabase db push",
+    "supabase:migrate": "npx supabase migration up",
     "migrate:firebase-to-supabase": "tsx scripts/migrate-firebase-to-supabase.ts"
   },
   "dependencies": {
@@ -63,6 +65,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "firebase-admin": "^13.9.0",
     "globals": "^17.4.0",
     "jsdom": "^25.0.1",
     "prettier": "^3.8.1",
