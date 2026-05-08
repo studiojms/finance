@@ -6,6 +6,15 @@ vi.mock('../firebase', () => ({
   auth: {},
 }));
 
+vi.mock('../supabase', () => ({
+  supabase: null,
+}));
+
+vi.mock('../config', () => ({
+  isFirebase: vi.fn(() => true),
+  isSupabase: vi.fn(() => false),
+}));
+
 vi.mock('firebase/auth', () => ({
   signInWithPopup: vi.fn(),
   GoogleAuthProvider: vi.fn(),
