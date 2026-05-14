@@ -19,20 +19,16 @@ export function useFirestoreData(userId: string | null): UseFirestoreDataReturn 
     if (!userId) return;
 
     const seedCategories = async () => {
+      if (isSupabase()) {
+        return;
+      }
+
       try {
         const allCategories = await DatabaseService.queryDocuments('categories', []);
 
         if (allCategories.length === 0) {
           for (const cat of DEFAULT_CATEGORIES) {
-            const categoryData = isFirebase()
-              ? { ...cat, userId: null }
-              : {
-                  name: cat.name,
-                  icon: cat.icon,
-                  color: cat.color,
-                  type: cat.type,
-                  user_id: null,
-                };
+            const categoryData = { ...cat, userId: null };
             await DatabaseService.addDocument('categories', categoryData);
           }
         }

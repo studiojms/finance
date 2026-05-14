@@ -3,7 +3,14 @@ import { DatabaseService } from '../services/databaseService';
 import { CSVService } from '../services/csvService';
 import { Account, Category } from '../types';
 import { format } from 'date-fns';
-import { isFirebase } from '../config';
+import { isFirebase, isSupabase } from '../config';
+
+function generateId(prefix: string): string {
+  if (isSupabase()) {
+    return crypto.randomUUID();
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
 
 export interface UseCSVImportReturn {
   isImporting: boolean;
@@ -69,7 +76,7 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
             accounts.find((a) => a.name.toLowerCase() === row.account.toLowerCase())?.id ||
             tempAccounts[row.account.toLowerCase()];
           if (!accountId) {
-            accountId = `temp_acc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            accountId = generateId('temp_acc');
             tempAccounts[row.account.toLowerCase()] = accountId;
 
             const accountData = isFirebase()
@@ -105,7 +112,7 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
               (c) => c.name.toLowerCase() === row.category.toLowerCase() && (c.type === type || c.type === 'both')
             )?.id || tempCategories[row.category.toLowerCase() + type];
           if (!categoryId) {
-            categoryId = `temp_cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            categoryId = generateId('temp_cat');
             tempCategories[row.category.toLowerCase() + type] = categoryId;
 
             const categoryData = isFirebase()
@@ -132,7 +139,7 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
             });
           }
 
-          const transactionId = `temp_txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const transactionId = generateId('temp_txn');
           const transactionData = isFirebase()
             ? {
                 description: row.description,
