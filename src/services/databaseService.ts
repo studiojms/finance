@@ -235,10 +235,11 @@ export class DatabaseService {
       }
 
       await LocalStorageService.addOperation({
-        type: 'update',
+        type: 'increment',
         collection: collectionName,
         documentId: docId,
-        data: { [field]: value, _increment: true },
+        field,
+        value,
       });
       return;
     }
@@ -267,10 +268,11 @@ export class DatabaseService {
     } catch (error) {
       console.error('Failed to increment field online, queuing for sync:', error);
       await LocalStorageService.addOperation({
-        type: 'update',
+        type: 'increment',
         collection: collectionName,
         documentId: docId,
-        data: { [field]: value, _increment: true },
+        field,
+        value,
       });
     }
   }
