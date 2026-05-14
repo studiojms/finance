@@ -514,7 +514,7 @@ export default function App() {
                 modalState.openTransactionModal('expense', t);
               }}
               onDeleteTransaction={handleDeleteTransaction}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleTabChange}
             />
           )}
 
