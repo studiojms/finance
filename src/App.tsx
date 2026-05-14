@@ -77,7 +77,7 @@ export default function App() {
     CSVService.downloadCSV(blob);
   };
 
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [filterToday, setFilterToday] = useState(false);
@@ -112,15 +112,15 @@ export default function App() {
   };
 
   const extratoRef = React.useRef<HTMLDivElement>(null);
-  const [hasScrolledToToday, setHasScrolledToToday] = useState(false);
+  const hasScrolledToToday = React.useRef(false);
 
   const [includePreviousBalance, setIncludePreviousBalance] = useState(() => {
-    const saved = localStorage.getItem('includePreviousBalance');
+    const saved = localStorage.getItem('includePreviousBalance:v1');
     return saved !== null ? JSON.parse(saved) : true;
   });
 
   const [transactionSortOrder, setTransactionSortOrder] = useState<'asc' | 'desc'>(() => {
-    const saved = localStorage.getItem('transactionSortOrder');
+    const saved = localStorage.getItem('transactionSortOrder:v1');
     return (saved as 'asc' | 'desc') || 'desc';
   });
 
@@ -220,11 +220,11 @@ export default function App() {
   };
 
   useEffect(() => {
-    localStorage.setItem('includePreviousBalance', JSON.stringify(includePreviousBalance));
+    localStorage.setItem('includePreviousBalance:v1', JSON.stringify(includePreviousBalance));
   }, [includePreviousBalance]);
 
   useEffect(() => {
-    localStorage.setItem('transactionSortOrder', transactionSortOrder);
+    localStorage.setItem('transactionSortOrder:v1', transactionSortOrder);
   }, [transactionSortOrder]);
 
   useEffect(() => {
@@ -243,7 +243,7 @@ export default function App() {
 
   // Reset scroll flag when month changes
   useEffect(() => {
-    setHasScrolledToToday(false);
+    hasScrolledToToday.current = false;
   }, [currentMonth]);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -261,17 +261,17 @@ export default function App() {
 
   // Auto-scroll to today's transactions
   useEffect(() => {
-    if (activeTab === 'transactions' && !hasScrolledToToday && transactionsByDay.length > 0) {
+    if (activeTab === 'transactions' && !hasScrolledToToday.current && transactionsByDay.length > 0) {
       const todayGroup = transactionsByDay.find((g) => isToday(parseISO(g.date)));
       if (todayGroup) {
         const element = document.getElementById(`group-${todayGroup.date}`);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          setHasScrolledToToday(true);
+          hasScrolledToToday.current = true;
         }
       }
     }
-  }, [activeTab, transactionsByDay, hasScrolledToToday]);
+  }, [activeTab, transactionsByDay]);
 
   // Handlers are now provided by hooks
 
@@ -288,15 +288,15 @@ export default function App() {
       <div className="h-screen flex items-center justify-center bg-slate-50 p-8">
         <div className="max-w-2xl bg-white rounded-3xl shadow-2xl p-8">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="size-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <X size={32} className="text-red-600" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">Configuration Error</h1>
+            <h1 className="text-3xl font-semibold text-slate-800 mb-2">Configuration Error</h1>
             <p className="text-slate-600">Backend authentication is not properly configured</p>
           </div>
 
           <div className="bg-slate-50 rounded-2xl p-6 mb-6">
-            <h2 className="font-bold text-slate-800 mb-3">Current Configuration:</h2>
+            <h2 className="font-semibold text-slate-800 mb-3">Current Configuration:</h2>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <span className="font-mono text-xs bg-slate-200 px-2 py-1 rounded">VITE_BACKEND</span>
@@ -321,7 +321,7 @@ export default function App() {
           </div>
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
-            <h2 className="font-bold text-yellow-800 mb-3">How to Fix:</h2>
+            <h2 className="font-semibold text-yellow-800 mb-3">How to Fix:</h2>
             <div className="space-y-4 text-sm text-yellow-900">
               <div>
                 <p className="font-semibold mb-2">
@@ -378,7 +378,7 @@ export default function App() {
             className="flex items-center gap-3 text-left hover:bg-white/10 p-1 rounded-2xl transition-colors"
             aria-label="Configurações"
           >
-            <div className="w-10 h-10 landscape:w-8 landscape:h-8 rounded-full bg-emerald-500/50 flex items-center justify-center overflow-hidden border-2 border-emerald-400">
+            <div className="size-10 landscape:w-8 landscape:h-8 rounded-full bg-emerald-500/50 flex items-center justify-center overflow-hidden border-2 border-emerald-400">
               <img src={user.photoURL || ''} alt={user.displayName || ''} referrerPolicy="no-referrer" />
             </div>
             <div className="landscape:hidden sm:block">
@@ -388,7 +388,7 @@ export default function App() {
                   <span className="flex h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" title="Offline" />
                 )}
               </div>
-              <h2 className="font-bold text-lg">Visão Geral</h2>
+              <h2 className="font-semibold text-lg">Visão Geral</h2>
             </div>
           </button>
           <div className="flex gap-2">
@@ -641,7 +641,7 @@ export default function App() {
             }
             modalState.openQuickAction();
           }}
-          className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 -mt-12 active:scale-90 transition-transform"
+          className="size-14 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 -mt-12 active:scale-90 transition-transform"
         >
           <Plus size={32} />
         </button>

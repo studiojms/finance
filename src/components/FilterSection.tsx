@@ -93,7 +93,9 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
         ? placeholder
         : `${selectedIds.length} selecionado${selectedIds.length > 1 ? 's' : ''}`;
 
-  const selectedColors = selectedIds.map((id) => items.find((item) => item.id === id)?.color).filter(Boolean);
+  const selectedItems = selectedIds
+    .map((id) => items.find((item) => item.id === id))
+    .filter((item): item is { id: string; name: string; color?: string } => !!item && !!item.color);
 
   return (
     <div className="relative">
@@ -107,10 +109,10 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
         <ChevronDown size={14} className={cn('absolute right-2 transition-transform', isOpen && 'rotate-180')} />
       </button>
 
-      {selectedColors.length > 0 && selectedColors.length < items.length && (
+      {selectedItems.length > 0 && selectedItems.length < items.length && (
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">
-          {selectedColors.slice(0, 3).map((color, idx) => (
-            <div key={idx} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+          {selectedItems.slice(0, 3).map((item) => (
+            <div key={item.id} className="size-1.5 rounded-full" style={{ backgroundColor: item.color }} />
           ))}
         </div>
       )}
@@ -152,14 +154,14 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                   >
                     <div
                       className={cn(
-                        'w-4 h-4 rounded border flex items-center justify-center flex-shrink-0',
+                        'size-4 rounded border flex items-center justify-center flex-shrink-0',
                         isSelected ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'
                       )}
                     >
                       {isSelected && <Check size={12} className="text-white" />}
                     </div>
                     {item.color && (
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                      <div className="size-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                     )}
                     <span className="text-xs font-medium text-slate-700 truncate">{item.name}</span>
                   </button>
@@ -199,7 +201,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   return (
     <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-slate-100 space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl landscape:text-base font-bold text-slate-800">{title}</h2>
+        <h2 className="text-xl landscape:text-base font-semibold text-slate-800">{title}</h2>
         <button
           onClick={() => setFilterToday(!filterToday)}
           className={cn(
