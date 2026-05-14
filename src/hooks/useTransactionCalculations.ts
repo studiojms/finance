@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { parseISO, isSameMonth, isToday, isAfter, isSameDay, startOfMonth, startOfDay } from 'date-fns';
+import { parseISO, isSameMonth, isToday, isAfter, isSameDay, startOfMonth, startOfDay, format } from 'date-fns';
 import { Transaction, Account, Category } from '../types';
 
 export interface TransactionTotals {
@@ -25,6 +25,8 @@ export interface UseTransactionCalculationsProps {
   filterToday: boolean;
   includePreviousBalance: boolean;
   transactionSortOrder: 'asc' | 'desc';
+  searchTerm?: string;
+  searchTimeFilter?: 'all' | 'past' | 'future';
 }
 
 export interface UseTransactionCalculationsReturn {
@@ -46,6 +48,8 @@ export function useTransactionCalculations({
   filterToday,
   includePreviousBalance,
   transactionSortOrder,
+  searchTerm = '',
+  searchTimeFilter = 'all',
 }: UseTransactionCalculationsProps): UseTransactionCalculationsReturn {
   const filteredTransactions = useMemo(() => {
     return transactions
@@ -57,10 +61,24 @@ export function useTransactionCalculations({
           selectedAccountIds.includes(t.accountId) ||
           (t.toAccountId && selectedAccountIds.includes(t.toAccountId));
         const categoryMatch = selectedCategoryIds.length === 0 || selectedCategoryIds.includes(t.categoryId);
-        return dateMatch && accountMatch && categoryMatch;
+
+        const normalizedSearch = searchTerm.toLowerCase().trim();
+        const searchMatch = normalizedSearch === '' || t.description.toLowerCase().includes(normalizedSearch);
+
+        const now = startOfDay(new Date());
+        let timeMatch = true;
+        if (normalizedSearch && searchTimeFilter !== 'all') {
+          if (searchTimeFilter === 'past') {
+            timeMatch = tDate < now;
+          } else if (searchTimeFilter === 'future') {
+            timeMatch = tDate >= now;
+          }
+        }
+
+        return dateMatch && accountMatch && categoryMatch && searchMatch && timeMatch;
       })
       .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
-  }, [transactions, currentMonth, selectedAccountIds, selectedCategoryIds, filterToday]);
+  }, [transactions, currentMonth, selectedAccountIds, selectedCategoryIds, filterToday, searchTerm, searchTimeFilter]);
 
   const totals = useMemo(() => {
     const income = filteredTransactions.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
@@ -195,15 +213,31 @@ export function useTransactionCalculations({
 
       const categoryMatch = selectedCategoryIds.length === 0 || selectedCategoryIds.includes(t.categoryId);
       if (categoryMatch) {
-        const dateStr = t.date;
-        let group = groups.find((g) => g.date === dateStr);
-        if (!group) {
-          group = { date: dateStr, transactions: [], dayTotal: 0, runningBalance: 0 };
-          groups.push(group);
+        const normalizedSearch = searchTerm.toLowerCase().trim();
+        const searchMatch = normalizedSearch === '' || t.description.toLowerCase().includes(normalizedSearch);
+
+        const now = startOfDay(new Date());
+        let timeMatch = true;
+        if (normalizedSearch && searchTimeFilter !== 'all') {
+          const tDate = parseISO(t.date);
+          if (searchTimeFilter === 'past') {
+            timeMatch = tDate < now;
+          } else if (searchTimeFilter === 'future') {
+            timeMatch = tDate >= now;
+          }
         }
-        group.transactions.push(t);
-        group.dayTotal += amount;
-        group.runningBalance = runningBalance;
+
+        if (searchMatch && timeMatch) {
+          const dateStr = format(parseISO(t.date), 'yyyy-MM-dd');
+          let group = groups.find((g) => g.date === dateStr);
+          if (!group) {
+            group = { date: dateStr, transactions: [], dayTotal: 0, runningBalance: 0 };
+            groups.push(group);
+          }
+          group.transactions.push(t);
+          group.dayTotal += amount;
+          group.runningBalance = runningBalance;
+        }
       }
     });
 
@@ -222,6 +256,8 @@ export function useTransactionCalculations({
     selectedCategoryIds,
     totalBalance,
     transactionSortOrder,
+    searchTerm,
+    searchTimeFilter,
   ]);
 
   const pieChartData = useMemo(() => {

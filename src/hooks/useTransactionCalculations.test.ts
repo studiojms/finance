@@ -474,5 +474,299 @@ describe('useTransactionCalculations', () => {
 
       expect(result.current.transactionsByDay.length).toBeGreaterThan(0);
     });
+
+    it('should group transactions by date ignoring time component', () => {
+      const sameDayTransactionsWithDifferentTimes: Transaction[] = [
+        {
+          id: 'tx-morning',
+          description: 'Morning Transaction',
+          amount: 100,
+          date: '2026-03-15T08:00:00.000Z',
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: true,
+          userId: 'user1',
+        },
+        {
+          id: 'tx-afternoon',
+          description: 'Afternoon Transaction',
+          amount: 50,
+          date: '2026-03-15T15:30:00.000Z',
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: true,
+          userId: 'user1',
+        },
+        {
+          id: 'tx-evening',
+          description: 'Evening Transaction',
+          amount: 75,
+          date: '2026-03-15T20:45:00.000Z',
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: true,
+          userId: 'user1',
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          transactions: sameDayTransactionsWithDifferentTimes,
+        })
+      );
+
+      const march15Group = result.current.transactionsByDay.find((g) => g.date === '2026-03-15');
+      expect(march15Group).toBeDefined();
+      expect(march15Group?.transactions).toHaveLength(3);
+      expect(march15Group?.transactions.map((t) => t.id)).toEqual(['tx-morning', 'tx-afternoon', 'tx-evening']);
+    });
+  });
+
+  describe('search functionality', () => {
+    it('should filter transactions by search term (case insensitive)', () => {
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          searchTerm: 'groceries',
+        })
+      );
+
+      expect(result.current.filteredTransactions).toHaveLength(1);
+      expect(result.current.filteredTransactions[0].description).toBe('Groceries');
+    });
+
+    it('should filter transactions by partial search term', () => {
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          searchTerm: 'gas',
+        })
+      );
+
+      expect(result.current.filteredTransactions).toHaveLength(1);
+      expect(result.current.filteredTransactions[0].description).toBe('Gas');
+    });
+
+    it('should return all transactions when search term is empty', () => {
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          searchTerm: '',
+        })
+      );
+
+      expect(result.current.filteredTransactions).toHaveLength(3);
+    });
+
+    it('should return empty array when no transactions match search term', () => {
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          searchTerm: 'nonexistent',
+        })
+      );
+
+      expect(result.current.filteredTransactions).toHaveLength(0);
+    });
+
+    it('should filter transactions by search term with time filter "past"', () => {
+      const baseDate = new Date();
+      baseDate.setDate(15); // Use mid-month to avoid boundary issues
+
+      const pastDate = new Date(baseDate);
+      pastDate.setDate(pastDate.getDate() - 3);
+      const futureDate = new Date(baseDate);
+      futureDate.setDate(futureDate.getDate() + 3);
+
+      const searchTransactions: Transaction[] = [
+        {
+          id: 'search-past',
+          description: 'Payment past',
+          amount: 50,
+          date: pastDate.toISOString(),
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: true,
+          userId: 'user1',
+        },
+        {
+          id: 'search-future',
+          description: 'Payment future',
+          amount: 75,
+          date: futureDate.toISOString(),
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: false,
+          userId: 'user1',
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          currentMonth: baseDate,
+          transactions: searchTransactions,
+          searchTerm: 'payment',
+          searchTimeFilter: 'past',
+        })
+      );
+
+      expect(result.current.filteredTransactions).toHaveLength(1);
+      expect(result.current.filteredTransactions[0].id).toBe('search-past');
+    });
+
+    it('should filter transactions by search term with time filter "future"', () => {
+      const baseDate = new Date();
+      baseDate.setDate(15); // Use mid-month to avoid boundary issues
+
+      const pastDate = new Date(baseDate);
+      pastDate.setDate(pastDate.getDate() - 3);
+      const futureDate = new Date(baseDate);
+      futureDate.setDate(futureDate.getDate() + 3);
+
+      const searchTransactions: Transaction[] = [
+        {
+          id: 'search-past',
+          description: 'Payment past',
+          amount: 50,
+          date: pastDate.toISOString(),
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: true,
+          userId: 'user1',
+        },
+        {
+          id: 'search-future',
+          description: 'Payment future',
+          amount: 75,
+          date: futureDate.toISOString(),
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: false,
+          userId: 'user1',
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          currentMonth: baseDate,
+          transactions: searchTransactions,
+          searchTerm: 'payment',
+          searchTimeFilter: 'future',
+        })
+      );
+
+      expect(result.current.filteredTransactions).toHaveLength(1);
+      expect(result.current.filteredTransactions[0].id).toBe('search-future');
+    });
+
+    it('should filter transactions by search term with time filter "all"', () => {
+      const baseDate = new Date();
+      baseDate.setDate(15); // Use mid-month to avoid boundary issues
+
+      const pastDate = new Date(baseDate);
+      pastDate.setDate(pastDate.getDate() - 3);
+      const futureDate = new Date(baseDate);
+      futureDate.setDate(futureDate.getDate() + 3);
+
+      const searchTransactions: Transaction[] = [
+        {
+          id: 'search-past',
+          description: 'Payment past',
+          amount: 50,
+          date: pastDate.toISOString(),
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: true,
+          userId: 'user1',
+        },
+        {
+          id: 'search-future',
+          description: 'Payment future',
+          amount: 75,
+          date: futureDate.toISOString(),
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: false,
+          userId: 'user1',
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          currentMonth: baseDate,
+          transactions: searchTransactions,
+          searchTerm: 'payment',
+          searchTimeFilter: 'all',
+        })
+      );
+
+      expect(result.current.filteredTransactions).toHaveLength(2);
+    });
+
+    it('should combine search with account filter', () => {
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          searchTerm: 'gas',
+          selectedAccountIds: ['acc1'],
+        })
+      );
+
+      expect(result.current.filteredTransactions).toHaveLength(1);
+      expect(result.current.filteredTransactions[0].description).toBe('Gas');
+      expect(result.current.filteredTransactions[0].accountId).toBe('acc1');
+    });
+
+    it('should combine search with category filter', () => {
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          searchTerm: 'groceries',
+          selectedCategoryIds: ['cat1'],
+        })
+      );
+
+      expect(result.current.filteredTransactions).toHaveLength(1);
+      expect(result.current.filteredTransactions[0].description).toBe('Groceries');
+      expect(result.current.filteredTransactions[0].categoryId).toBe('cat1');
+    });
+
+    it('should filter transactionsByDay with search term', () => {
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          searchTerm: 'groceries',
+        })
+      );
+
+      expect(result.current.transactionsByDay).toHaveLength(1);
+      expect(result.current.transactionsByDay[0].transactions).toHaveLength(1);
+      expect(result.current.transactionsByDay[0].transactions[0].description).toBe('Groceries');
+    });
+
+    it('should handle search term with leading and trailing spaces', () => {
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          searchTerm: '  groceries  ',
+        })
+      );
+
+      expect(result.current.filteredTransactions).toHaveLength(1);
+      expect(result.current.filteredTransactions[0].description).toBe('Groceries');
+    });
   });
 });

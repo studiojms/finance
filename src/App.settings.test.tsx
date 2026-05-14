@@ -92,7 +92,7 @@ describe('App Settings Persistence', () => {
       await user.click(previousBalanceToggle);
 
       await waitFor(() => {
-        const saved = localStorage.getItem('includePreviousBalance');
+        const saved = localStorage.getItem('includePreviousBalance:v1');
         expect(saved).toBe('false');
       });
     }
@@ -100,7 +100,7 @@ describe('App Settings Persistence', () => {
 
   it('persists transactionSortOrder to localStorage when changed', async () => {
     const user = userEvent.setup();
-    localStorage.setItem('transactionSortOrder', 'desc');
+    localStorage.setItem('transactionSortOrder:v1', 'desc');
 
     render(<App />);
 
@@ -119,34 +119,37 @@ describe('App Settings Persistence', () => {
     await user.click(alterarButton);
 
     await waitFor(() => {
-      const saved = localStorage.getItem('transactionSortOrder');
+      const saved = localStorage.getItem('transactionSortOrder:v1');
       expect(saved).toBe('asc');
     });
   });
 
   it('loads includePreviousBalance from localStorage on mount', () => {
-    localStorage.setItem('includePreviousBalance', 'false');
+    const storageKey = 'includePreviousBalance:v1';
+    localStorage.setItem(storageKey, 'false');
 
     render(<App />);
 
-    const saved = localStorage.getItem('includePreviousBalance');
+    const saved = localStorage.getItem(storageKey);
     expect(saved).toBe('false');
   });
 
   it('loads transactionSortOrder from localStorage on mount', () => {
-    localStorage.setItem('transactionSortOrder', 'asc');
+    const storageKey = 'transactionSortOrder:v1';
+    localStorage.setItem(storageKey, 'asc');
 
     render(<App />);
 
-    const saved = localStorage.getItem('transactionSortOrder');
+    const saved = localStorage.getItem(storageKey);
     expect(saved).toBe('asc');
   });
 
   it('defaults to desc for transactionSortOrder when not in localStorage', async () => {
     render(<App />);
 
+    const storageKey = 'transactionSortOrder:v1';
     await waitFor(() => {
-      const saved = localStorage.getItem('transactionSortOrder');
+      const saved = localStorage.getItem(storageKey);
       expect(saved).toBe('desc');
     });
   });
@@ -154,8 +157,9 @@ describe('App Settings Persistence', () => {
   it('defaults to true for includePreviousBalance when not in localStorage', async () => {
     render(<App />);
 
+    const storageKey = 'includePreviousBalance:v1';
     await waitFor(() => {
-      const saved = localStorage.getItem('includePreviousBalance');
+      const saved = localStorage.getItem(storageKey);
       expect(saved).toBe('true');
     });
   });
