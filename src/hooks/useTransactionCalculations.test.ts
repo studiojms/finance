@@ -574,10 +574,13 @@ describe('useTransactionCalculations', () => {
     });
 
     it('should filter transactions by search term with time filter "past"', () => {
-      const pastDate = new Date();
-      pastDate.setDate(pastDate.getDate() - 5);
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 5);
+      const baseDate = new Date();
+      baseDate.setDate(15); // Use mid-month to avoid boundary issues
+
+      const pastDate = new Date(baseDate);
+      pastDate.setDate(pastDate.getDate() - 3);
+      const futureDate = new Date(baseDate);
+      futureDate.setDate(futureDate.getDate() + 3);
 
       const searchTransactions: Transaction[] = [
         {
@@ -607,7 +610,7 @@ describe('useTransactionCalculations', () => {
       const { result } = renderHook(() =>
         useTransactionCalculations({
           ...defaultProps,
-          currentMonth: new Date(),
+          currentMonth: baseDate,
           transactions: searchTransactions,
           searchTerm: 'payment',
           searchTimeFilter: 'past',
@@ -619,10 +622,13 @@ describe('useTransactionCalculations', () => {
     });
 
     it('should filter transactions by search term with time filter "future"', () => {
-      const pastDate = new Date();
-      pastDate.setDate(pastDate.getDate() - 5);
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 5);
+      const baseDate = new Date();
+      baseDate.setDate(15); // Use mid-month to avoid boundary issues
+
+      const pastDate = new Date(baseDate);
+      pastDate.setDate(pastDate.getDate() - 3);
+      const futureDate = new Date(baseDate);
+      futureDate.setDate(futureDate.getDate() + 3);
 
       const searchTransactions: Transaction[] = [
         {
@@ -652,7 +658,7 @@ describe('useTransactionCalculations', () => {
       const { result } = renderHook(() =>
         useTransactionCalculations({
           ...defaultProps,
-          currentMonth: new Date(),
+          currentMonth: baseDate,
           transactions: searchTransactions,
           searchTerm: 'payment',
           searchTimeFilter: 'future',
@@ -664,10 +670,13 @@ describe('useTransactionCalculations', () => {
     });
 
     it('should filter transactions by search term with time filter "all"', () => {
-      const pastDate = new Date();
-      pastDate.setDate(pastDate.getDate() - 5);
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 5);
+      const baseDate = new Date();
+      baseDate.setDate(15); // Use mid-month to avoid boundary issues
+
+      const pastDate = new Date(baseDate);
+      pastDate.setDate(pastDate.getDate() - 3);
+      const futureDate = new Date(baseDate);
+      futureDate.setDate(futureDate.getDate() + 3);
 
       const searchTransactions: Transaction[] = [
         {
@@ -697,7 +706,7 @@ describe('useTransactionCalculations', () => {
       const { result } = renderHook(() =>
         useTransactionCalculations({
           ...defaultProps,
-          currentMonth: new Date(),
+          currentMonth: baseDate,
           transactions: searchTransactions,
           searchTerm: 'payment',
           searchTimeFilter: 'all',
