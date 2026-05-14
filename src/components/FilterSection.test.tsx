@@ -290,4 +290,219 @@ describe('FilterSection', () => {
 
     expect(mockSetSelectedCategoryIds).toHaveBeenCalledWith(['1']);
   });
+
+  describe('search functionality', () => {
+    const mockSetSearchTerm = vi.fn();
+    const mockSetSearchTimeFilter = vi.fn();
+
+    afterEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('renders search input when setSearchTerm is provided', () => {
+      render(
+        <FilterSection
+          title="Transações"
+          filterToday={false}
+          setFilterToday={mockSetFilterToday}
+          selectedAccountIds={[]}
+          setSelectedAccountIds={mockSetSelectedAccountIds}
+          selectedCategoryIds={[]}
+          setSelectedCategoryIds={mockSetSelectedCategoryIds}
+          accounts={mockAccounts}
+          categories={mockCategories}
+          searchTerm=""
+          setSearchTerm={mockSetSearchTerm}
+        />
+      );
+
+      expect(screen.getByPlaceholderText('Buscar por descrição...')).toBeInTheDocument();
+    });
+
+    it('does not render search input when setSearchTerm is not provided', () => {
+      render(
+        <FilterSection
+          title="Transações"
+          filterToday={false}
+          setFilterToday={mockSetFilterToday}
+          selectedAccountIds={[]}
+          setSelectedAccountIds={mockSetSelectedAccountIds}
+          selectedCategoryIds={[]}
+          setSelectedCategoryIds={mockSetSelectedCategoryIds}
+          accounts={mockAccounts}
+          categories={mockCategories}
+        />
+      );
+
+      expect(screen.queryByPlaceholderText('Buscar por descrição...')).not.toBeInTheDocument();
+    });
+
+    it('updates search term when user types', async () => {
+      const user = userEvent.setup();
+      render(
+        <FilterSection
+          title="Transações"
+          filterToday={false}
+          setFilterToday={mockSetFilterToday}
+          selectedAccountIds={[]}
+          setSelectedAccountIds={mockSetSelectedAccountIds}
+          selectedCategoryIds={[]}
+          setSelectedCategoryIds={mockSetSelectedCategoryIds}
+          accounts={mockAccounts}
+          categories={mockCategories}
+          searchTerm=""
+          setSearchTerm={mockSetSearchTerm}
+        />
+      );
+
+      const searchInput = screen.getByPlaceholderText('Buscar por descrição...');
+      await user.type(searchInput, 'groceries');
+
+      expect(mockSetSearchTerm).toHaveBeenCalledWith('g');
+      expect(mockSetSearchTerm).toHaveBeenCalledWith('r');
+    });
+
+    it('displays clear button when search term is not empty', () => {
+      render(
+        <FilterSection
+          title="Transações"
+          filterToday={false}
+          setFilterToday={mockSetFilterToday}
+          selectedAccountIds={[]}
+          setSelectedAccountIds={mockSetSelectedAccountIds}
+          selectedCategoryIds={[]}
+          setSelectedCategoryIds={mockSetSelectedCategoryIds}
+          accounts={mockAccounts}
+          categories={mockCategories}
+          searchTerm="groceries"
+          setSearchTerm={mockSetSearchTerm}
+        />
+      );
+
+      const clearButton = screen.getByRole('button', { name: '' });
+      expect(clearButton).toBeInTheDocument();
+    });
+
+    it('clears search term when clear button is clicked', async () => {
+      const user = userEvent.setup();
+      render(
+        <FilterSection
+          title="Transações"
+          filterToday={false}
+          setFilterToday={mockSetFilterToday}
+          selectedAccountIds={[]}
+          setSelectedAccountIds={mockSetSelectedAccountIds}
+          selectedCategoryIds={[]}
+          setSelectedCategoryIds={mockSetSelectedCategoryIds}
+          accounts={mockAccounts}
+          categories={mockCategories}
+          searchTerm="groceries"
+          setSearchTerm={mockSetSearchTerm}
+        />
+      );
+
+      const buttons = screen.getAllByRole('button');
+      const clearButton = buttons.find((button) => button.className.includes('absolute right-3'));
+
+      if (clearButton) {
+        await user.click(clearButton);
+        expect(mockSetSearchTerm).toHaveBeenCalledWith('');
+      }
+    });
+
+    it('renders time filter buttons when searchTerm is not empty', () => {
+      render(
+        <FilterSection
+          title="Transações"
+          filterToday={false}
+          setFilterToday={mockSetFilterToday}
+          selectedAccountIds={[]}
+          setSelectedAccountIds={mockSetSelectedAccountIds}
+          selectedCategoryIds={[]}
+          setSelectedCategoryIds={mockSetSelectedCategoryIds}
+          accounts={mockAccounts}
+          categories={mockCategories}
+          searchTerm="groceries"
+          setSearchTerm={mockSetSearchTerm}
+          searchTimeFilter="all"
+          setSearchTimeFilter={mockSetSearchTimeFilter}
+        />
+      );
+
+      expect(screen.getByText('Todos')).toBeInTheDocument();
+      expect(screen.getByText('Passadas')).toBeInTheDocument();
+      expect(screen.getByText('Futuras')).toBeInTheDocument();
+    });
+
+    it('does not render time filter buttons when searchTerm is empty', () => {
+      render(
+        <FilterSection
+          title="Transações"
+          filterToday={false}
+          setFilterToday={mockSetFilterToday}
+          selectedAccountIds={[]}
+          setSelectedAccountIds={mockSetSelectedAccountIds}
+          selectedCategoryIds={[]}
+          setSelectedCategoryIds={mockSetSelectedCategoryIds}
+          accounts={mockAccounts}
+          categories={mockCategories}
+          searchTerm=""
+          setSearchTerm={mockSetSearchTerm}
+          searchTimeFilter="all"
+          setSearchTimeFilter={mockSetSearchTimeFilter}
+        />
+      );
+
+      expect(screen.queryByText('Passadas')).not.toBeInTheDocument();
+      expect(screen.queryByText('Futuras')).not.toBeInTheDocument();
+    });
+
+    it('updates time filter when button is clicked', async () => {
+      const user = userEvent.setup();
+      render(
+        <FilterSection
+          title="Transações"
+          filterToday={false}
+          setFilterToday={mockSetFilterToday}
+          selectedAccountIds={[]}
+          setSelectedAccountIds={mockSetSelectedAccountIds}
+          selectedCategoryIds={[]}
+          setSelectedCategoryIds={mockSetSelectedCategoryIds}
+          accounts={mockAccounts}
+          categories={mockCategories}
+          searchTerm="groceries"
+          setSearchTerm={mockSetSearchTerm}
+          searchTimeFilter="all"
+          setSearchTimeFilter={mockSetSearchTimeFilter}
+        />
+      );
+
+      await user.click(screen.getByText('Passadas'));
+
+      expect(mockSetSearchTimeFilter).toHaveBeenCalledWith('past');
+    });
+
+    it('clears search term when Limpar button is clicked', async () => {
+      const user = userEvent.setup();
+      render(
+        <FilterSection
+          title="Transações"
+          filterToday={false}
+          setFilterToday={mockSetFilterToday}
+          selectedAccountIds={[]}
+          setSelectedAccountIds={mockSetSelectedAccountIds}
+          selectedCategoryIds={[]}
+          setSelectedCategoryIds={mockSetSelectedCategoryIds}
+          accounts={mockAccounts}
+          categories={mockCategories}
+          searchTerm="groceries"
+          setSearchTerm={mockSetSearchTerm}
+        />
+      );
+
+      await user.click(screen.getByText('Limpar'));
+
+      expect(mockSetSearchTerm).toHaveBeenCalledWith('');
+    });
+  });
 });

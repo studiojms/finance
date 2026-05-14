@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '../utils';
 import { Account, Category } from '../types';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, Search, X } from 'lucide-react';
 
 interface FilterSectionProps {
   title: string;
@@ -13,6 +13,10 @@ interface FilterSectionProps {
   setSelectedCategoryIds: (value: string[]) => void;
   accounts: Account[];
   categories: Category[];
+  searchTerm?: string;
+  setSearchTerm?: (value: string) => void;
+  searchTimeFilter?: 'all' | 'past' | 'future';
+  setSearchTimeFilter?: (value: 'all' | 'past' | 'future') => void;
 }
 
 interface MultiSelectDropdownProps {
@@ -24,7 +28,7 @@ interface MultiSelectDropdownProps {
 }
 
 const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
-  label,
+  label: _label,
   items,
   selectedIds,
   onSelectionChange,
@@ -179,8 +183,18 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   setSelectedCategoryIds,
   accounts,
   categories,
+  searchTerm = '',
+  setSearchTerm,
+  searchTimeFilter = 'all',
+  setSearchTimeFilter,
 }) => {
-  const hasFilters = selectedAccountIds.length > 0 || selectedCategoryIds.length > 0 || filterToday;
+  const hasFilters = selectedAccountIds.length > 0 || selectedCategoryIds.length > 0 || filterToday || searchTerm;
+
+  const timeFilterOptions: { value: 'all' | 'past' | 'future'; label: string }[] = [
+    { value: 'all', label: 'Todos' },
+    { value: 'past', label: 'Passadas' },
+    { value: 'future', label: 'Futuras' },
+  ];
 
   return (
     <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-slate-100 space-y-3">
@@ -198,6 +212,46 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
           Hoje
         </button>
       </div>
+
+      {setSearchTerm && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por descrição..."
+            className="w-full pl-9 pr-9 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {searchTerm && setSearchTimeFilter && (
+        <div className="flex gap-2">
+          {timeFilterOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setSearchTimeFilter(option.value)}
+              className={cn(
+                'flex-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border',
+                searchTimeFilter === option.value
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200'
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="relative">
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -223,6 +277,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                 setSelectedAccountIds([]);
                 setSelectedCategoryIds([]);
                 setFilterToday(false);
+                if (setSearchTerm) setSearchTerm('');
               }}
               className="p-2 bg-slate-200 text-slate-600 rounded-xl text-xs font-bold whitespace-nowrap"
             >

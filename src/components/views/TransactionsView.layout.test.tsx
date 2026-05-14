@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { TransactionsView } from './TransactionsView';
 import { Account, Transaction, Category } from '../../types';
 
@@ -54,6 +55,8 @@ describe('TransactionsView Layout', () => {
   const mockSetSelectedAccountIds = vi.fn();
   const mockSetSelectedCategoryIds = vi.fn();
   const mockSetFilterToday = vi.fn();
+  const mockSetSearchTerm = vi.fn();
+  const mockSetSearchTimeFilter = vi.fn();
   const mockOnToggleConsolidated = vi.fn();
   const mockOnEditTransaction = vi.fn();
   const mockOnDeleteTransaction = vi.fn();
@@ -70,6 +73,10 @@ describe('TransactionsView Layout', () => {
         setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
+        searchTerm=""
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
         onToggleConsolidated={mockOnToggleConsolidated}
         onEditTransaction={mockOnEditTransaction}
         onDeleteTransaction={mockOnDeleteTransaction}
@@ -92,6 +99,10 @@ describe('TransactionsView Layout', () => {
         setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
+        searchTerm=""
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
         onToggleConsolidated={mockOnToggleConsolidated}
         onEditTransaction={mockOnEditTransaction}
         onDeleteTransaction={mockOnDeleteTransaction}
@@ -114,6 +125,10 @@ describe('TransactionsView Layout', () => {
         setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
+        searchTerm=""
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
         onToggleConsolidated={mockOnToggleConsolidated}
         onEditTransaction={mockOnEditTransaction}
         onDeleteTransaction={mockOnDeleteTransaction}
@@ -169,6 +184,10 @@ describe('TransactionsView Layout', () => {
         setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
+        searchTerm=""
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
         onToggleConsolidated={mockOnToggleConsolidated}
         onEditTransaction={mockOnEditTransaction}
         onDeleteTransaction={mockOnDeleteTransaction}
@@ -193,6 +212,10 @@ describe('TransactionsView Layout', () => {
         setSelectedCategoryIds={mockSetSelectedCategoryIds}
         filterToday={false}
         setFilterToday={mockSetFilterToday}
+        searchTerm=""
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
         onToggleConsolidated={mockOnToggleConsolidated}
         onEditTransaction={mockOnEditTransaction}
         onDeleteTransaction={mockOnDeleteTransaction}
@@ -200,5 +223,174 @@ describe('TransactionsView Layout', () => {
     );
 
     expect(screen.getByText('Nenhum lançamento encontrado.')).toBeInTheDocument();
+  });
+
+  it('renders search input when search props are provided', async () => {
+    const user = userEvent.setup();
+    render(
+      <TransactionsView
+        transactionsByDay={mockTransactionsByDay}
+        categories={mockCategories}
+        accounts={mockAccounts}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        searchTerm=""
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
+        onToggleConsolidated={mockOnToggleConsolidated}
+        onEditTransaction={mockOnEditTransaction}
+        onDeleteTransaction={mockOnDeleteTransaction}
+      />
+    );
+
+    await user.click(screen.getByLabelText('Abrir filtros'));
+
+    expect(screen.getByPlaceholderText('Buscar por descrição...')).toBeInTheDocument();
+  });
+
+  it('displays time filter buttons when search term is provided', async () => {
+    const user = userEvent.setup();
+    render(
+      <TransactionsView
+        transactionsByDay={mockTransactionsByDay}
+        categories={mockCategories}
+        accounts={mockAccounts}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        searchTerm="supermercado"
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
+        onToggleConsolidated={mockOnToggleConsolidated}
+        onEditTransaction={mockOnEditTransaction}
+        onDeleteTransaction={mockOnDeleteTransaction}
+      />
+    );
+
+    await user.click(screen.getByLabelText('Abrir filtros'));
+
+    expect(screen.getByText('Todos')).toBeInTheDocument();
+    expect(screen.getByText('Passadas')).toBeInTheDocument();
+    expect(screen.getByText('Futuras')).toBeInTheDocument();
+  });
+
+  it('renders floating filter button', () => {
+    render(
+      <TransactionsView
+        transactionsByDay={mockTransactionsByDay}
+        categories={mockCategories}
+        accounts={mockAccounts}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        searchTerm=""
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
+        onToggleConsolidated={mockOnToggleConsolidated}
+        onEditTransaction={mockOnEditTransaction}
+        onDeleteTransaction={mockOnDeleteTransaction}
+      />
+    );
+
+    expect(screen.getByLabelText('Abrir filtros')).toBeInTheDocument();
+  });
+
+  it('opens filter modal when floating button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <TransactionsView
+        transactionsByDay={mockTransactionsByDay}
+        categories={mockCategories}
+        accounts={mockAccounts}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        searchTerm=""
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
+        onToggleConsolidated={mockOnToggleConsolidated}
+        onEditTransaction={mockOnEditTransaction}
+        onDeleteTransaction={mockOnDeleteTransaction}
+      />
+    );
+
+    await user.click(screen.getByLabelText('Abrir filtros'));
+
+    expect(screen.getByText('Extrato')).toBeInTheDocument();
+    expect(screen.getByLabelText('Fechar filtros')).toBeInTheDocument();
+  });
+
+  it('closes filter modal when close button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <TransactionsView
+        transactionsByDay={mockTransactionsByDay}
+        categories={mockCategories}
+        accounts={mockAccounts}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        searchTerm=""
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
+        onToggleConsolidated={mockOnToggleConsolidated}
+        onEditTransaction={mockOnEditTransaction}
+        onDeleteTransaction={mockOnDeleteTransaction}
+      />
+    );
+
+    await user.click(screen.getByLabelText('Abrir filtros'));
+    expect(screen.getByText('Extrato')).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Fechar filtros'));
+    await waitFor(() => {
+      expect(screen.queryByText('Extrato')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows badge with active filter count', () => {
+    render(
+      <TransactionsView
+        transactionsByDay={mockTransactionsByDay}
+        categories={mockCategories}
+        accounts={mockAccounts}
+        selectedAccountIds={['1']}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={['1']}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        filterToday={true}
+        setFilterToday={mockSetFilterToday}
+        searchTerm="test"
+        setSearchTerm={mockSetSearchTerm}
+        searchTimeFilter="all"
+        setSearchTimeFilter={mockSetSearchTimeFilter}
+        onToggleConsolidated={mockOnToggleConsolidated}
+        onEditTransaction={mockOnEditTransaction}
+        onDeleteTransaction={mockOnDeleteTransaction}
+      />
+    );
+
+    expect(screen.getByText('4')).toBeInTheDocument();
   });
 });

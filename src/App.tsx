@@ -81,6 +81,8 @@ export default function App() {
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [filterToday, setFilterToday] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTimeFilter, setSearchTimeFilter] = useState<'all' | 'past' | 'future'>('all');
 
   // Modal state management
   const modalState = useModalState();
@@ -137,6 +139,8 @@ export default function App() {
       filterToday,
       includePreviousBalance,
       transactionSortOrder,
+      searchTerm,
+      searchTimeFilter,
     });
 
   const {
@@ -515,6 +519,10 @@ export default function App() {
               setSelectedAccountIds={setSelectedAccountIds}
               selectedCategoryIds={selectedCategoryIds}
               setSelectedCategoryIds={setSelectedCategoryIds}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              searchTimeFilter={searchTimeFilter}
+              setSearchTimeFilter={setSearchTimeFilter}
               filterToday={filterToday}
               setFilterToday={setFilterToday}
               onToggleConsolidated={toggleConsolidated}
