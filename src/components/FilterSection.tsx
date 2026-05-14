@@ -280,6 +280,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                 setSelectedCategoryIds([]);
                 setFilterToday(false);
                 if (setSearchTerm) setSearchTerm('');
+                if (setSearchTimeFilter) setSearchTimeFilter('all');
               }}
               className="p-2 bg-slate-200 text-slate-600 rounded-xl text-xs font-bold whitespace-nowrap"
             >

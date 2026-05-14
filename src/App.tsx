@@ -55,6 +55,14 @@ export default function App() {
     'dashboard'
   );
 
+  const handleTabChange = (tab: 'dashboard' | 'transactions' | 'accounts' | 'charts' | 'data') => {
+    if (tab !== 'transactions' && (searchTerm || searchTimeFilter !== 'all')) {
+      setSearchTerm('');
+      setSearchTimeFilter('all');
+    }
+    setActiveTab(tab);
+  };
+
   const toggleConsolidated = (transaction: Transaction) => {
     if (analytics) {
       logEvent(analytics, 'toggle_consolidated', {
@@ -397,7 +405,7 @@ export default function App() {
                 if (analytics) {
                   logEvent(analytics, 'navigate_to_data');
                 }
-                setActiveTab('data');
+                handleTabChange('data');
               }}
               className={cn(
                 'p-2 rounded-full transition-colors',
@@ -623,13 +631,13 @@ export default function App() {
       <nav className="bg-white border-t border-slate-100 px-6 py-4 flex justify-between items-center fixed bottom-0 left-0 right-0 z-20 rounded-t-[2rem] shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
         <NavButton
           active={activeTab === 'dashboard'}
-          onClick={() => setActiveTab('dashboard')}
+          onClick={() => handleTabChange('dashboard')}
           icon={<LayoutDashboard size={24} />}
           label="Início"
         />
         <NavButton
           active={activeTab === 'transactions'}
-          onClick={() => setActiveTab('transactions')}
+          onClick={() => handleTabChange('transactions')}
           icon={<ArrowUpCircle size={24} />}
           label="Extrato"
         />
@@ -648,13 +656,13 @@ export default function App() {
 
         <NavButton
           active={activeTab === 'accounts'}
-          onClick={() => setActiveTab('accounts')}
+          onClick={() => handleTabChange('accounts')}
           icon={<Wallet size={24} />}
           label="Contas"
         />
         <NavButton
           active={activeTab === 'charts'}
-          onClick={() => setActiveTab('charts')}
+          onClick={() => handleTabChange('charts')}
           icon={<PieChartIcon size={24} />}
           label="Análise"
         />
