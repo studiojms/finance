@@ -10,7 +10,10 @@ CREATE TABLE accounts (
   name TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('checking', 'savings', 'credit_card', 'cash', 'investment')),
   balance NUMERIC NOT NULL DEFAULT 0,
+  initial_balance NUMERIC NOT NULL DEFAULT 0,
+  initial_balance_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   color TEXT,
+  icon TEXT,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -43,6 +46,7 @@ CREATE TABLE transactions (
   installment_number INTEGER,
   total_installments INTEGER,
   to_account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
+  transfer_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -142,14 +146,47 @@ CREATE OR REPLACE FUNCTION increment_field(
 RETURNS VOID AS $$
 DECLARE
   query TEXT;
+  user_id_value UUID;
+  record_user_id UUID;
 BEGIN
+  -- Get the current authenticated user
+  user_id_value := auth.uid();
+  
+  -- Validate user is authenticated
+  IF user_id_value IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+  
+  -- Validate table_name is one of our allowed tables
+  IF table_name NOT IN ('accounts', 'transactions') THEN
+    RAISE EXCEPTION 'Invalid table name';
+  END IF;
+  
+  -- Validate field_name to prevent SQL injection
+  IF field_name !~ '^[a-z_]+$' THEN
+    RAISE EXCEPTION 'Invalid field name';
+  END IF;
+  
+  -- Check if the record belongs to the current user
+  query := format('SELECT user_id FROM %I WHERE id = $1', table_name);
+  EXECUTE query INTO record_user_id USING record_id;
+  
+  IF record_user_id IS NULL THEN
+    RAISE EXCEPTION 'Record not found';
+  END IF;
+  
+  IF record_user_id != user_id_value THEN
+    RAISE EXCEPTION 'Permission denied';
+  END IF;
+  
+  -- Perform the increment
   query := format(
-    'UPDATE %I SET %I = COALESCE(%I, 0) + $1 WHERE id = $2',
+    'UPDATE %I SET %I = COALESCE(%I, 0) + $1 WHERE id = $2 AND user_id = $3',
     table_name,
     field_name,
     field_name
   );
-  EXECUTE query USING increment_value, record_id;
+  EXECUTE query USING increment_value, record_id, user_id_value;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

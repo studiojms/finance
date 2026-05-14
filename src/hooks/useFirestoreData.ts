@@ -45,12 +45,10 @@ export function useFirestoreData(userId: string | null): UseFirestoreDataReturn 
     const unsubAccounts = DatabaseService.subscribeToCollection('accounts', userId, [], (data) => {
       setAccounts(
         data.map((d) => ({
-          id: d.id,
-          name: d.name,
-          type: d.type,
-          balance: d.balance,
-          color: d.color,
+          ...d,
           userId: isFirebase() ? d.userId : d.user_id,
+          initialBalance: isFirebase() ? d.initialBalance : d.initial_balance,
+          initialBalanceDate: isFirebase() ? d.initialBalanceDate : d.initial_balance_date,
         })) as Account[]
       );
     });
@@ -71,6 +69,8 @@ export function useFirestoreData(userId: string | null): UseFirestoreDataReturn 
           installmentNumber: isFirebase() ? d.installmentNumber : d.installment_number,
           totalInstallments: isFirebase() ? d.totalInstallments : d.total_installments,
           toAccountId: isFirebase() ? d.toAccountId : d.to_account_id,
+          transferId: isFirebase() ? d.transferId : d.transfer_id,
+          frequency: d.frequency,
         })) as Transaction[]
       );
     });
