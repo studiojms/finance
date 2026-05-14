@@ -42,6 +42,11 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   onEditTransaction,
   onDeleteTransaction,
 }) => {
+  const formatDayName = (date: Date) => {
+    const dayName = format(date, 'EEEE', { locale: ptBR }).split('-')[0];
+    return dayName.charAt(0).toUpperCase() + dayName.slice(1);
+  };
+
   return (
     <motion.div
       key="transactions"
@@ -67,7 +72,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
           <div key={group.date} id={`group-${group.date}`} className="space-y-2">
             <div className="flex items-center gap-2 px-2 pt-2">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                {format(parseISO(group.date), "dd 'DE' MMMM", { locale: ptBR })}
+                {format(parseISO(group.date), "dd 'DE' MMMM", { locale: ptBR })} - {formatDayName(parseISO(group.date))}
               </span>
               {isToday(parseISO(group.date)) && (
                 <span className="text-[10px] font-bold bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-lg">

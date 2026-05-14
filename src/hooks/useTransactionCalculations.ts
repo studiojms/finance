@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { parseISO, isSameMonth, isToday, isAfter, isSameDay, startOfMonth, startOfDay } from 'date-fns';
+import { parseISO, isSameMonth, isToday, isAfter, isSameDay, startOfMonth, startOfDay, format } from 'date-fns';
 import { Transaction, Account, Category } from '../types';
 
 export interface TransactionTotals {
@@ -195,7 +195,7 @@ export function useTransactionCalculations({
 
       const categoryMatch = selectedCategoryIds.length === 0 || selectedCategoryIds.includes(t.categoryId);
       if (categoryMatch) {
-        const dateStr = t.date;
+        const dateStr = format(parseISO(t.date), 'yyyy-MM-dd');
         let group = groups.find((g) => g.date === dateStr);
         if (!group) {
           group = { date: dateStr, transactions: [], dayTotal: 0, runningBalance: 0 };

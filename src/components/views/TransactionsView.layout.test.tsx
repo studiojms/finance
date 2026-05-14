@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { TransactionsView } from './TransactionsView';
 import { Account, Transaction, Category } from '../../types';
 
@@ -100,5 +100,105 @@ describe('TransactionsView Layout', () => {
 
     const contentDiv = container.querySelector('.space-y-6');
     expect(contentDiv).toHaveClass('space-y-6');
+  });
+
+  it('displays date with day of week', () => {
+    render(
+      <TransactionsView
+        transactionsByDay={mockTransactionsByDay}
+        categories={mockCategories}
+        accounts={mockAccounts}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        onToggleConsolidated={mockOnToggleConsolidated}
+        onEditTransaction={mockOnEditTransaction}
+        onDeleteTransaction={mockOnDeleteTransaction}
+      />
+    );
+
+    expect(screen.getByText(/15 DE MARÇO - Domingo/i)).toBeInTheDocument();
+  });
+
+  it('groups transactions by date regardless of time', () => {
+    const transactionsWithDifferentTimes: Transaction[] = [
+      {
+        id: 'tx1',
+        description: 'Morning Transaction',
+        amount: 100,
+        date: '2026-03-15T08:00:00.000Z',
+        accountId: '1',
+        categoryId: '1',
+        type: 'expense',
+        isConsolidated: true,
+        userId: 'user1',
+      },
+      {
+        id: 'tx2',
+        description: 'Afternoon Transaction',
+        amount: 50,
+        date: '2026-03-15T15:30:00.000Z',
+        accountId: '1',
+        categoryId: '1',
+        type: 'expense',
+        isConsolidated: true,
+        userId: 'user1',
+      },
+    ];
+
+    const groupedByDay = [
+      {
+        date: '2026-03-15',
+        transactions: transactionsWithDifferentTimes,
+        dayTotal: -150,
+        runningBalance: 850,
+      },
+    ];
+
+    render(
+      <TransactionsView
+        transactionsByDay={groupedByDay}
+        categories={mockCategories}
+        accounts={mockAccounts}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        onToggleConsolidated={mockOnToggleConsolidated}
+        onEditTransaction={mockOnEditTransaction}
+        onDeleteTransaction={mockOnDeleteTransaction}
+      />
+    );
+
+    const dateHeaders = screen.getAllByText(/15 DE MARÇO/i);
+    expect(dateHeaders).toHaveLength(1);
+    expect(screen.getByText('Morning Transaction')).toBeInTheDocument();
+    expect(screen.getByText('Afternoon Transaction')).toBeInTheDocument();
+  });
+
+  it('displays empty state when no transactions', () => {
+    render(
+      <TransactionsView
+        transactionsByDay={[]}
+        categories={mockCategories}
+        accounts={mockAccounts}
+        selectedAccountIds={[]}
+        setSelectedAccountIds={mockSetSelectedAccountIds}
+        selectedCategoryIds={[]}
+        setSelectedCategoryIds={mockSetSelectedCategoryIds}
+        filterToday={false}
+        setFilterToday={mockSetFilterToday}
+        onToggleConsolidated={mockOnToggleConsolidated}
+        onEditTransaction={mockOnEditTransaction}
+        onDeleteTransaction={mockOnDeleteTransaction}
+      />
+    );
+
+    expect(screen.getByText('Nenhum lançamento encontrado.')).toBeInTheDocument();
   });
 });

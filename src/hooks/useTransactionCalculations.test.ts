@@ -474,5 +474,55 @@ describe('useTransactionCalculations', () => {
 
       expect(result.current.transactionsByDay.length).toBeGreaterThan(0);
     });
+
+    it('should group transactions by date ignoring time component', () => {
+      const sameDayTransactionsWithDifferentTimes: Transaction[] = [
+        {
+          id: 'tx-morning',
+          description: 'Morning Transaction',
+          amount: 100,
+          date: '2026-03-15T08:00:00.000Z',
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: true,
+          userId: 'user1',
+        },
+        {
+          id: 'tx-afternoon',
+          description: 'Afternoon Transaction',
+          amount: 50,
+          date: '2026-03-15T15:30:00.000Z',
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: true,
+          userId: 'user1',
+        },
+        {
+          id: 'tx-evening',
+          description: 'Evening Transaction',
+          amount: 75,
+          date: '2026-03-15T20:45:00.000Z',
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: true,
+          userId: 'user1',
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useTransactionCalculations({
+          ...defaultProps,
+          transactions: sameDayTransactionsWithDifferentTimes,
+        })
+      );
+
+      const march15Group = result.current.transactionsByDay.find((g) => g.date === '2026-03-15');
+      expect(march15Group).toBeDefined();
+      expect(march15Group?.transactions).toHaveLength(3);
+      expect(march15Group?.transactions.map((t) => t.id)).toEqual(['tx-morning', 'tx-afternoon', 'tx-evening']);
+    });
   });
 });
