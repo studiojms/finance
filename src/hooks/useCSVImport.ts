@@ -180,11 +180,7 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
               (op) => op.type === 'create' && op.collection === 'accounts' && op.documentId === accId
             );
             if (accountOp) {
-              if (isFirebase()) {
-                accountOp.data.balance = accountBalanceChanges[accId];
-              } else {
-                accountOp.data.balance = accountBalanceChanges[accId];
-              }
+              accountOp.data.balance = accountBalanceChanges[accId];
             }
           } else {
             operations.push({
