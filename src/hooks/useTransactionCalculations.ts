@@ -67,7 +67,7 @@ export function useTransactionCalculations({
 
         const now = startOfDay(new Date());
         let timeMatch = true;
-        if (searchTerm && searchTimeFilter !== 'all') {
+        if (normalizedSearch && searchTimeFilter !== 'all') {
           if (searchTimeFilter === 'past') {
             timeMatch = tDate < now;
           } else if (searchTimeFilter === 'future') {
@@ -218,7 +218,7 @@ export function useTransactionCalculations({
 
         const now = startOfDay(new Date());
         let timeMatch = true;
-        if (searchTerm && searchTimeFilter !== 'all') {
+        if (normalizedSearch && searchTimeFilter !== 'all') {
           const tDate = parseISO(t.date);
           if (searchTimeFilter === 'past') {
             timeMatch = tDate < now;

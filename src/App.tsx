@@ -386,7 +386,7 @@ export default function App() {
             className="flex items-center gap-3 text-left hover:bg-white/10 p-1 rounded-2xl transition-colors"
             aria-label="Configurações"
           >
-            <div className="size-10 landscape:w-8 landscape:h-8 rounded-full bg-emerald-500/50 flex items-center justify-center overflow-hidden border-2 border-emerald-400">
+            <div className="w-10 h-10 landscape:w-8 landscape:h-8 rounded-full bg-emerald-500/50 flex items-center justify-center overflow-hidden border-2 border-emerald-400">
               <img src={user.photoURL || ''} alt={user.displayName || ''} referrerPolicy="no-referrer" />
             </div>
             <div className="landscape:hidden sm:block">
