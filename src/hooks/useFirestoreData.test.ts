@@ -41,7 +41,13 @@ describe('useFirestoreData', () => {
       [],
       expect.any(Function)
     );
-    expect(DatabaseService.subscribeToCollection).toHaveBeenCalledWith('categories', 'user1', [], expect.any(Function), true);
+    expect(DatabaseService.subscribeToCollection).toHaveBeenCalledWith(
+      'categories',
+      'user1',
+      [],
+      expect.any(Function),
+      true
+    );
   });
 
   it('seeds default categories if none exist', async () => {
