@@ -73,6 +73,38 @@ export class DatabaseService {
         }
       });
 
+      const fetchData = async () => {
+        if (!supabase) return;
+
+        let freshQuery: any = supabase.from(collectionName).select('*');
+
+        if (includeNull) {
+          freshQuery = freshQuery.or(`user_id.eq.${userId},user_id.is.null`);
+        } else {
+          freshQuery = freshQuery.eq('user_id', userId);
+        }
+
+        constraints.forEach((constraint: any) => {
+          if (constraint.type === 'orderBy') {
+            freshQuery = freshQuery.order(constraint.field, {
+              ascending: constraint.direction === 'asc',
+            });
+          }
+        });
+
+        const { data } = await freshQuery;
+        if (data) {
+          const documents = data.map((item: any) => ({ id: item.id, ...item }));
+
+          // Cache data locally
+          for (const document of documents) {
+            await LocalStorageService.saveDocument(collectionName, userId, document);
+          }
+
+          callback(documents);
+        }
+      };
+
       const subscription = supabase
         .channel(`${collectionName}_${userId}`)
         .on(
@@ -84,34 +116,13 @@ export class DatabaseService {
             filter: includeNull ? undefined : `user_id=eq.${userId}`,
           },
           () => {
-            queryBuilder.then(async ({ data }: any) => {
-              if (data) {
-                const documents = data.map((item: any) => ({ id: item.id, ...item }));
-
-                // Cache data locally
-                for (const document of documents) {
-                  await LocalStorageService.saveDocument(collectionName, userId, document);
-                }
-
-                callback(documents);
-              }
-            });
+            fetchData();
           }
         )
         .subscribe();
 
-      queryBuilder.then(async ({ data }: any) => {
-        if (data) {
-          const documents = data.map((item: any) => ({ id: item.id, ...item }));
-
-          // Cache data locally
-          for (const document of documents) {
-            await LocalStorageService.saveDocument(collectionName, userId, document);
-          }
-
-          callback(documents);
-        }
-      });
+      // Initial fetch
+      fetchData();
 
       return () => {
         subscription.unsubscribe();

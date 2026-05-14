@@ -54,6 +54,7 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
         const chunk = rows.slice(i, i + CHUNK_SIZE);
         const operations: any[] = [];
         const accountBalanceChanges: Record<string, number> = {};
+        const newlyCreatedAccounts = new Set<string>();
 
         for (const row of chunk) {
           const dateObj = CSVService.parseDate(row.date);
@@ -78,6 +79,7 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
           if (!accountId) {
             accountId = generateId('temp_acc');
             tempAccounts[row.account.toLowerCase()] = accountId;
+            newlyCreatedAccounts.add(accountId);
 
             const accountData = isFirebase()
               ? {
@@ -173,13 +175,26 @@ export function useCSVImport(userId: string, accounts: Account[], categories: Ca
         }
 
         for (const accId in accountBalanceChanges) {
-          operations.push({
-            type: 'increment',
-            collection: 'accounts',
-            documentId: accId,
-            field: 'balance',
-            value: accountBalanceChanges[accId],
-          });
+          if (newlyCreatedAccounts.has(accId)) {
+            const accountOp = operations.find(
+              (op) => op.type === 'create' && op.collection === 'accounts' && op.documentId === accId
+            );
+            if (accountOp) {
+              if (isFirebase()) {
+                accountOp.data.balance = accountBalanceChanges[accId];
+              } else {
+                accountOp.data.balance = accountBalanceChanges[accId];
+              }
+            }
+          } else {
+            operations.push({
+              type: 'increment',
+              collection: 'accounts',
+              documentId: accId,
+              field: 'balance',
+              value: accountBalanceChanges[accId],
+            });
+          }
         }
 
         if (operations.length > 0) {
