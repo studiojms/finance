@@ -126,7 +126,6 @@ export const NotificationService = {
         badge: '/finance-128.png',
         tag: 'overdue-transaction',
         requireInteraction: false,
-        vibrate: [200, 100, 200],
       });
     } catch (error) {
       console.error('Failed to show notification:', error);

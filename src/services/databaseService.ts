@@ -11,6 +11,7 @@ import {
   getDocs,
   Timestamp,
   writeBatch,
+  increment,
 } from 'firebase/firestore';
 import { db as firebaseDb } from '../firebase';
 import { supabase } from '../supabase';
@@ -28,7 +29,8 @@ export class DatabaseService {
     collectionName: string,
     userId: string,
     constraints: any[],
-    callback: (data: DatabaseDocument[]) => void
+    callback: (data: DatabaseDocument[]) => void,
+    includeNull: boolean = false
   ): () => void {
     // Load cached data first
     this.loadCachedData(collectionName, userId).then((cachedData) => {
@@ -38,7 +40,8 @@ export class DatabaseService {
     });
 
     if (isFirebase() && firebaseDb) {
-      const q = query(collection(firebaseDb, collectionName), where('userId', '==', userId), ...constraints);
+      const userFilter = includeNull ? where('userId', 'in', [null, userId]) : where('userId', '==', userId);
+      const q = query(collection(firebaseDb, collectionName), userFilter, ...constraints);
 
       return onSnapshot(q, async (snapshot) => {
         const data = snapshot.docs.map((doc) => ({
@@ -54,7 +57,13 @@ export class DatabaseService {
         callback(data);
       });
     } else if (isSupabase() && supabase) {
-      let queryBuilder: any = supabase.from(collectionName).select('*').eq('user_id', userId);
+      let queryBuilder: any = supabase.from(collectionName).select('*');
+
+      if (includeNull) {
+        queryBuilder = queryBuilder.or(`user_id.eq.${userId},user_id.is.null`);
+      } else {
+        queryBuilder = queryBuilder.eq('user_id', userId);
+      }
 
       constraints.forEach((constraint: any) => {
         if (constraint.type === 'orderBy') {
@@ -64,34 +73,26 @@ export class DatabaseService {
         }
       });
 
-      const subscription = supabase
-        .channel(`${collectionName}_${userId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: collectionName,
-            filter: `user_id=eq.${userId}`,
-          },
-          () => {
-            queryBuilder.then(async ({ data }: any) => {
-              if (data) {
-                const documents = data.map((item: any) => ({ id: item.id, ...item }));
+      const fetchData = async () => {
+        if (!supabase) return;
 
-                // Cache data locally
-                for (const document of documents) {
-                  await LocalStorageService.saveDocument(collectionName, userId, document);
-                }
+        let freshQuery: any = supabase.from(collectionName).select('*');
 
-                callback(documents);
-              }
+        if (includeNull) {
+          freshQuery = freshQuery.or(`user_id.eq.${userId},user_id.is.null`);
+        } else {
+          freshQuery = freshQuery.eq('user_id', userId);
+        }
+
+        constraints.forEach((constraint: any) => {
+          if (constraint.type === 'orderBy') {
+            freshQuery = freshQuery.order(constraint.field, {
+              ascending: constraint.direction === 'asc',
             });
           }
-        )
-        .subscribe();
+        });
 
-      queryBuilder.then(async ({ data }: any) => {
+        const { data } = await freshQuery;
         if (data) {
           const documents = data.map((item: any) => ({ id: item.id, ...item }));
 
@@ -102,7 +103,26 @@ export class DatabaseService {
 
           callback(documents);
         }
-      });
+      };
+
+      const subscription = supabase
+        .channel(`${collectionName}_${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: collectionName,
+            filter: includeNull ? undefined : `user_id=eq.${userId}`,
+          },
+          () => {
+            fetchData();
+          }
+        )
+        .subscribe();
+
+      // Initial fetch
+      fetchData();
 
       return () => {
         subscription.unsubscribe();
@@ -116,7 +136,7 @@ export class DatabaseService {
     try {
       const documents = await LocalStorageService.getDocuments(collectionName, userId);
       return documents.map((doc) => {
-        const { collection, timestamp, ...rest } = doc;
+        const { collection: _collection, timestamp: _timestamp, ...rest } = doc;
         return rest as DatabaseDocument;
       });
     } catch (error) {
@@ -214,6 +234,60 @@ export class DatabaseService {
     }
   }
 
+  static async incrementField(collectionName: string, docId: string, field: string, value: number): Promise<void> {
+    if (!ConnectionService.isOnline()) {
+      const existingDoc = await LocalStorageService.getDocument(docId);
+      if (existingDoc) {
+        const currentValue = (existingDoc as any)[field] || 0;
+        await LocalStorageService.saveDocument(collectionName, (existingDoc as any).userId || '', {
+          ...existingDoc,
+          [field]: currentValue + value,
+        } as Record<string, unknown>);
+      }
+
+      await LocalStorageService.addOperation({
+        type: 'increment',
+        collection: collectionName,
+        documentId: docId,
+        field,
+        value,
+      });
+      return;
+    }
+
+    try {
+      if (isFirebase() && firebaseDb) {
+        await updateDoc(doc(firebaseDb, collectionName, docId), { [field]: increment(value) });
+      } else if (isSupabase() && supabase) {
+        const { error } = await supabase.rpc('increment_field', {
+          table_name: collectionName,
+          record_id: docId,
+          field_name: field,
+          increment_value: value,
+        });
+        if (error) throw error;
+      }
+
+      const existingDoc = await LocalStorageService.getDocument(docId);
+      if (existingDoc) {
+        const currentValue = (existingDoc as any)[field] || 0;
+        await LocalStorageService.saveDocument(collectionName, (existingDoc as any).userId || '', {
+          ...existingDoc,
+          [field]: currentValue + value,
+        } as Record<string, unknown>);
+      }
+    } catch (error) {
+      console.error('Failed to increment field online, queuing for sync:', error);
+      await LocalStorageService.addOperation({
+        type: 'increment',
+        collection: collectionName,
+        documentId: docId,
+        field,
+        value,
+      });
+    }
+  }
+
   static async deleteDocument(collectionName: string, docId: string): Promise<void> {
     // Delete from local storage immediately
     await LocalStorageService.deleteDocument(docId);
@@ -250,7 +324,11 @@ export class DatabaseService {
     // Try local storage first
     const cachedDoc = await LocalStorageService.getDocument(docId);
     if (cachedDoc && !ConnectionService.isOnline()) {
-      const { collection, timestamp, ...rest } = cachedDoc as Record<string, unknown> & {
+      const {
+        collection: _collection,
+        timestamp: _timestamp,
+        ...rest
+      } = cachedDoc as Record<string, unknown> & {
         collection?: string;
         timestamp?: number;
       };
@@ -342,12 +420,13 @@ export class DatabaseService {
     }
 
     if (isFirebase() && firebaseDb) {
-      const q = query(collection(firebaseDb, collectionName), where('userId', '==', userId));
+      const db = firebaseDb;
+      const q = query(collection(db, collectionName), where('userId', '==', userId));
       const snapshot = await getDocs(q);
 
       const batchSize = 500;
       const batches: any[] = [];
-      let currentBatch = writeBatch(firebaseDb);
+      let currentBatch = writeBatch(db);
       let operationCount = 0;
 
       snapshot.docs.forEach((docSnapshot) => {
@@ -357,7 +436,7 @@ export class DatabaseService {
 
         if (operationCount >= batchSize) {
           batches.push(currentBatch);
-          currentBatch = writeBatch(firebaseDb);
+          currentBatch = writeBatch(db);
           operationCount = 0;
         }
       });
@@ -401,26 +480,48 @@ export class DatabaseService {
    */
   static async executeBatchWrite(
     operations: Array<{
-      type: 'create' | 'update' | 'delete';
+      type: 'create' | 'update' | 'delete' | 'increment';
       collection: string;
       documentId?: string;
       data?: any;
+      field?: string;
+      value?: number;
     }>
   ): Promise<void> {
     // Save to local storage immediately (optimistic update)
     for (const operation of operations) {
-      const { type, collection: collectionName, documentId, data } = operation;
+      const { type, collection: collectionName, documentId, data, field, value } = operation;
 
       if (type === 'create' && data) {
         const tempId = documentId || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        await LocalStorageService.saveDocument(collectionName, data.userId || '', { ...data, id: tempId });
+        await LocalStorageService.saveDocument(collectionName, data.userId || data.user_id || '', {
+          ...data,
+          id: tempId,
+        });
       } else if (type === 'update' && documentId && data) {
         const existingDoc = await LocalStorageService.getDocument(documentId);
         if (existingDoc) {
-          await LocalStorageService.saveDocument(collectionName, (existingDoc as any).userId || '', {
-            ...existingDoc,
-            ...data,
-          });
+          await LocalStorageService.saveDocument(
+            collectionName,
+            (existingDoc as any).userId || (existingDoc as any).user_id || '',
+            {
+              ...existingDoc,
+              ...data,
+            }
+          );
+        }
+      } else if (type === 'increment' && documentId && field && value !== undefined) {
+        const existingDoc = await LocalStorageService.getDocument(documentId);
+        if (existingDoc) {
+          const currentValue = (existingDoc as any)[field] || 0;
+          await LocalStorageService.saveDocument(
+            collectionName,
+            (existingDoc as any).userId || (existingDoc as any).user_id || '',
+            {
+              ...existingDoc,
+              [field]: currentValue + value,
+            }
+          );
         }
       } else if (type === 'delete' && documentId) {
         await LocalStorageService.deleteDocument(documentId);
@@ -441,7 +542,7 @@ export class DatabaseService {
         const batch = writeBatch(firebaseDb);
 
         for (const operation of operations) {
-          const { type, collection: collectionName, documentId, data } = operation;
+          const { type, collection: collectionName, documentId, data, field, value } = operation;
 
           if (type === 'create' && data) {
             const docRef = documentId
@@ -451,6 +552,9 @@ export class DatabaseService {
           } else if (type === 'update' && documentId && data) {
             const docRef = doc(firebaseDb, collectionName, documentId);
             batch.update(docRef, data);
+          } else if (type === 'increment' && documentId && field && value !== undefined) {
+            const docRef = doc(firebaseDb, collectionName, documentId);
+            batch.update(docRef, { [field]: increment(value) });
           } else if (type === 'delete' && documentId) {
             const docRef = doc(firebaseDb, collectionName, documentId);
             batch.delete(docRef);
@@ -461,12 +565,21 @@ export class DatabaseService {
       } else if (isSupabase() && supabase) {
         // Supabase doesn't have batch operations, execute sequentially
         for (const operation of operations) {
-          const { type, collection: collectionName, documentId, data } = operation;
+          const { type, collection: collectionName, documentId, data, field, value } = operation;
 
           if (type === 'create') {
-            await supabase.from(collectionName).insert([data]);
+            const dataWithId = documentId ? { ...data, id: documentId } : data;
+            await supabase.from(collectionName).insert([dataWithId]);
           } else if (type === 'update' && documentId) {
             await supabase.from(collectionName).update(data).eq('id', documentId);
+          } else if (type === 'increment' && documentId && field && value !== undefined) {
+            const { error } = await supabase.rpc('increment_field', {
+              table_name: collectionName,
+              record_id: documentId,
+              field_name: field,
+              increment_value: value,
+            });
+            if (error) throw error;
           } else if (type === 'delete' && documentId) {
             await supabase.from(collectionName).delete().eq('id', documentId);
           }

@@ -248,4 +248,88 @@ describe('SyncService', () => {
       expect(count).toBe(0);
     });
   });
+
+  describe('increment operations', () => {
+    it('syncs increment operations without errors', async () => {
+      const operations = [
+        {
+          id: 'op1',
+          type: 'increment' as const,
+          collection: 'accounts',
+          documentId: 'account1',
+          field: 'balance',
+          value: 50,
+          timestamp: Date.now(),
+          synced: false,
+        },
+      ];
+
+      vi.mocked(LocalStorageService.getPendingOperations).mockResolvedValue(operations);
+
+      await SyncService.syncPendingOperations();
+
+      expect(LocalStorageService.markOperationSynced).toHaveBeenCalledWith('op1');
+      expect(LocalStorageService.clearSyncedOperations).toHaveBeenCalled();
+    });
+
+    it('handles increment operations with missing field gracefully', async () => {
+      const operations = [
+        {
+          id: 'op1',
+          type: 'increment' as const,
+          collection: 'accounts',
+          documentId: 'account1',
+          value: 50,
+          timestamp: Date.now(),
+          synced: false,
+        },
+      ];
+
+      vi.mocked(LocalStorageService.getPendingOperations).mockResolvedValue(operations);
+
+      await SyncService.syncPendingOperations();
+
+      expect(LocalStorageService.markOperationSynced).toHaveBeenCalledWith('op1');
+    });
+
+    it('handles increment operations with missing value gracefully', async () => {
+      const operations = [
+        {
+          id: 'op1',
+          type: 'increment' as const,
+          collection: 'accounts',
+          documentId: 'account1',
+          field: 'balance',
+          timestamp: Date.now(),
+          synced: false,
+        },
+      ];
+
+      vi.mocked(LocalStorageService.getPendingOperations).mockResolvedValue(operations);
+
+      await SyncService.syncPendingOperations();
+
+      expect(LocalStorageService.markOperationSynced).toHaveBeenCalledWith('op1');
+    });
+
+    it('handles increment operations with missing documentId gracefully', async () => {
+      const operations = [
+        {
+          id: 'op1',
+          type: 'increment' as const,
+          collection: 'accounts',
+          field: 'balance',
+          value: 50,
+          timestamp: Date.now(),
+          synced: false,
+        },
+      ];
+
+      vi.mocked(LocalStorageService.getPendingOperations).mockResolvedValue(operations);
+
+      await SyncService.syncPendingOperations();
+
+      expect(LocalStorageService.markOperationSynced).toHaveBeenCalledWith('op1');
+    });
+  });
 });

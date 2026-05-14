@@ -7,7 +7,7 @@ import { ConnectionService } from './connectionService';
 import { isFirebase, isSupabase } from '../config';
 import { db as firebaseDb } from '../firebase';
 import { supabase } from '../supabase';
-import { addDoc, collection, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { addDoc, collection, updateDoc, deleteDoc, doc, increment } from 'firebase/firestore';
 
 type SyncCallback = (status: 'syncing' | 'synced' | 'error', progress?: number) => void;
 
@@ -91,28 +91,32 @@ export class SyncService {
   }
 
   private static async executeOperation(operation: OfflineOperation): Promise<void> {
-    const { type, collection: collectionName, documentId, data } = operation;
-
     if (isFirebase() && firebaseDb) {
-      await this.executeFirebaseOperation(type, collectionName, documentId, data);
+      await this.executeFirebaseOperation(operation);
     } else if (isSupabase() && supabase) {
-      await this.executeSupabaseOperation(type, collectionName, documentId, data);
+      await this.executeSupabaseOperation(operation);
     }
   }
 
-  private static async executeFirebaseOperation(
-    type: string,
-    collectionName: string,
-    documentId?: string,
-    data?: Record<string, unknown>
-  ): Promise<void> {
+  private static async executeFirebaseOperation(operation: OfflineOperation): Promise<void> {
+    const { type, collection: collectionName, documentId, data, field, value } = operation;
+
     switch (type) {
       case 'create':
-        await addDoc(collection(firebaseDb!, collectionName), data);
+        if (data) {
+          await addDoc(collection(firebaseDb!, collectionName), data);
+        }
         break;
       case 'update':
-        if (documentId) {
+        if (documentId && data) {
           await updateDoc(doc(firebaseDb!, collectionName, documentId), data);
+        }
+        break;
+      case 'increment':
+        if (documentId && field && value !== undefined) {
+          await updateDoc(doc(firebaseDb!, collectionName, documentId), {
+            [field]: increment(value),
+          });
         }
         break;
       case 'delete':
@@ -123,29 +127,43 @@ export class SyncService {
     }
   }
 
-  private static async executeSupabaseOperation(
-    type: string,
-    collectionName: string,
-    documentId?: string,
-    data?: Record<string, unknown>
-  ): Promise<void> {
+  private static async executeSupabaseOperation(operation: OfflineOperation): Promise<void> {
+    const { type, collection: collectionName, documentId, data, field, value } = operation;
+
     switch (type) {
-      case 'create':
-        const { error: createError } = await supabase!.from(collectionName).insert([data]);
-        if (createError) throw createError;
+      case 'create': {
+        if (data) {
+          const { error: createError } = await supabase!.from(collectionName).insert([data]);
+          if (createError) throw createError;
+        }
         break;
-      case 'update':
-        if (documentId) {
+      }
+      case 'update': {
+        if (documentId && data) {
           const { error: updateError } = await supabase!.from(collectionName).update(data).eq('id', documentId);
           if (updateError) throw updateError;
         }
         break;
-      case 'delete':
+      }
+      case 'increment': {
+        if (documentId && field && value !== undefined) {
+          const { error } = await supabase!.rpc('increment_field', {
+            table_name: collectionName,
+            record_id: documentId,
+            field_name: field,
+            increment_value: value,
+          });
+          if (error) throw error;
+        }
+        break;
+      }
+      case 'delete': {
         if (documentId) {
           const { error: deleteError } = await supabase!.from(collectionName).delete().eq('id', documentId);
           if (deleteError) throw deleteError;
         }
         break;
+      }
     }
   }
 

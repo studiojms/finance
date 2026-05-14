@@ -9,6 +9,8 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import { supabase } from '../supabase';
+import { isFirebase, isSupabase } from '../config';
 
 export const Login: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -23,11 +25,34 @@ export const Login: React.FC = () => {
     setError('');
     setLoading(true);
     try {
-      if (isSignUp) {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, { displayName: name });
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
+      if (isFirebase()) {
+        if (isSignUp) {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          await updateProfile(userCredential.user, { displayName: name });
+        } else {
+          await signInWithEmailAndPassword(auth, email, password);
+        }
+      } else if (isSupabase()) {
+        if (!supabase) throw new Error('Supabase not initialized');
+
+        if (isSignUp) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                display_name: name,
+              },
+            },
+          });
+          if (signUpError) throw signUpError;
+        } else {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (signInError) throw signInError;
+        }
       }
     } catch (err: any) {
       setError(err.message);
@@ -37,11 +62,24 @@ export const Login: React.FC = () => {
   };
 
   const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      if (isFirebase()) {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      } else if (isSupabase()) {
+        if (!supabase) throw new Error('Supabase not initialized');
+
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+          },
+        });
+        if (error) throw error;
+      }
     } catch (error) {
       console.error('Login error:', error);
+      setError(error instanceof Error ? error.message : 'Login failed');
     }
   };
 

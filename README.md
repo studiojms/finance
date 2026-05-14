@@ -22,6 +22,8 @@ A modern, comprehensive personal finance management application built with React
 - **Responsive Design**: Beautiful, modern UI that works on all devices
 - **PWA Support**: Install as a Progressive Web App for offline access
 
+📖 **Migrating from Firebase to Supabase?** Check out our [Supabase Migration Guide](SUPABASE_MIGRATION.md)
+
 ## Tech Stack 🛠️
 
 - **Frontend**: React 19, TypeScript, Vite

@@ -1,23 +1,17 @@
 import { renderHook } from '@testing-library/react';
 import { useTransactionOperations } from './useTransactionOperations';
 import { Transaction } from '../types';
+import { DatabaseService } from '../services/databaseService';
 
-vi.mock('../firebase', () => ({
-  db: {},
+vi.mock('../config', () => ({
+  isFirebase: vi.fn(() => true),
+  isSupabase: vi.fn(() => false),
 }));
 
-vi.mock('firebase/firestore', () => ({
-  writeBatch: vi.fn(() => ({
-    update: vi.fn(),
-    delete: vi.fn(),
-    commit: vi.fn().mockResolvedValue(undefined),
-  })),
-  doc: vi.fn((db, collection, id) => ({ collection, id })),
-  increment: vi.fn((value) => ({ _increment: value })),
-}));
-
-vi.mock('../services/errorService', () => ({
-  handleFirestoreError: vi.fn(),
+vi.mock('../services/databaseService', () => ({
+  DatabaseService: {
+    executeBatchWrite: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 describe('useTransactionOperations', () => {
@@ -84,8 +78,13 @@ describe('useTransactionOperations', () => {
 
       await result.current.toggleConsolidated(mockTransactions[0]);
 
-      // Verify the operation was called
-      expect(true).toBe(true);
+      expect(DatabaseService.executeBatchWrite).toHaveBeenCalled();
+      const operations = (DatabaseService.executeBatchWrite as any).mock.calls[0][0];
+      expect(operations).toHaveLength(2);
+      expect(operations[0].type).toBe('update');
+      expect(operations[0].collection).toBe('transactions');
+      expect(operations[1].type).toBe('increment');
+      expect(operations[1].collection).toBe('accounts');
     });
 
     it('updates account balance for expense transaction', async () => {
@@ -93,28 +92,47 @@ describe('useTransactionOperations', () => {
 
       await result.current.toggleConsolidated(mockTransactions[0]);
 
-      expect(true).toBe(true);
+      const operations = (DatabaseService.executeBatchWrite as any).mock.calls[0][0];
+      const incrementOp = operations.find((op: any) => op.type === 'increment');
+      expect(incrementOp.value).toBe(100);
     });
 
     it('handles transfer transactions', async () => {
-      const transferTransaction: Transaction = {
-        id: 't5',
-        description: 'Transfer',
-        amount: 200,
-        date: '2024-01-15T12:00:00.000Z',
-        accountId: 'acc1',
-        toAccountId: 'acc2',
-        categoryId: 'cat1',
-        type: 'transfer',
-        isConsolidated: true,
-        userId: 'user1',
-      };
+      const transferTransactions: Transaction[] = [
+        {
+          id: 't5',
+          description: 'Transfer Out',
+          amount: 200,
+          date: '2024-01-15T12:00:00.000Z',
+          accountId: 'acc1',
+          toAccountId: 'acc2',
+          categoryId: 'cat1',
+          type: 'expense',
+          isConsolidated: true,
+          userId: 'user1',
+          transferId: 'transfer1',
+        },
+        {
+          id: 't6',
+          description: 'Transfer In',
+          amount: 200,
+          date: '2024-01-15T12:00:00.000Z',
+          accountId: 'acc2',
+          categoryId: 'cat1',
+          type: 'income',
+          isConsolidated: true,
+          userId: 'user1',
+          transferId: 'transfer1',
+        },
+      ];
 
-      const { result } = renderHook(() => useTransactionOperations(mockTransactions));
+      const { result } = renderHook(() => useTransactionOperations(transferTransactions));
 
-      await result.current.toggleConsolidated(transferTransaction);
+      await result.current.toggleConsolidated(transferTransactions[0]);
 
-      expect(true).toBe(true);
+      expect(DatabaseService.executeBatchWrite).toHaveBeenCalled();
+      const operations = (DatabaseService.executeBatchWrite as any).mock.calls[0][0];
+      expect(operations.length).toBeGreaterThan(2);
     });
   });
 
@@ -124,7 +142,10 @@ describe('useTransactionOperations', () => {
 
       await result.current.deleteTransaction(mockTransactions[0], 'only');
 
-      expect(true).toBe(true);
+      expect(DatabaseService.executeBatchWrite).toHaveBeenCalled();
+      const operations = (DatabaseService.executeBatchWrite as any).mock.calls[0][0];
+      const deleteOps = operations.filter((op: any) => op.type === 'delete');
+      expect(deleteOps).toHaveLength(1);
     });
 
     it('deletes future installments when mode is "future"', async () => {
@@ -132,7 +153,10 @@ describe('useTransactionOperations', () => {
 
       await result.current.deleteTransaction(mockTransactions[1], 'future');
 
-      expect(true).toBe(true);
+      expect(DatabaseService.executeBatchWrite).toHaveBeenCalled();
+      const operations = (DatabaseService.executeBatchWrite as any).mock.calls[0][0];
+      const deleteOps = operations.filter((op: any) => op.type === 'delete');
+      expect(deleteOps.length).toBeGreaterThanOrEqual(3);
     });
 
     it('only deletes single transaction if no installmentId', async () => {
@@ -140,7 +164,10 @@ describe('useTransactionOperations', () => {
 
       await result.current.deleteTransaction(mockTransactions[0], 'future');
 
-      expect(true).toBe(true);
+      expect(DatabaseService.executeBatchWrite).toHaveBeenCalled();
+      const operations = (DatabaseService.executeBatchWrite as any).mock.calls[0][0];
+      const deleteOps = operations.filter((op: any) => op.type === 'delete');
+      expect(deleteOps).toHaveLength(1);
     });
 
     it('reverses balance changes for consolidated transactions', async () => {
@@ -148,7 +175,10 @@ describe('useTransactionOperations', () => {
 
       await result.current.deleteTransaction(mockTransactions[0]);
 
-      expect(true).toBe(true);
+      expect(DatabaseService.executeBatchWrite).toHaveBeenCalled();
+      const operations = (DatabaseService.executeBatchWrite as any).mock.calls[0][0];
+      const incrementOps = operations.filter((op: any) => op.type === 'increment');
+      expect(incrementOps.length).toBeGreaterThan(0);
     });
   });
 });
