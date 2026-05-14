@@ -147,23 +147,13 @@ export class SyncService {
       }
       case 'increment': {
         if (documentId && field && value !== undefined) {
-          const { data: currentData, error: fetchError } = await supabase!
-            .from(collectionName)
-            .select(field)
-            .eq('id', documentId)
-            .single();
-
-          if (fetchError) throw fetchError;
-
-          const currentValue = (currentData as unknown as Record<string, number>)?.[field] || 0;
-          const newValue = currentValue + value;
-
-          const { error: updateError } = await supabase!
-            .from(collectionName)
-            .update({ [field]: newValue })
-            .eq('id', documentId);
-
-          if (updateError) throw updateError;
+          const { error } = await supabase!.rpc('increment_field', {
+            table_name: collectionName,
+            record_id: documentId,
+            field_name: field,
+            increment_value: value,
+          });
+          if (error) throw error;
         }
         break;
       }
