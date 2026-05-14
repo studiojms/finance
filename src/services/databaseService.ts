@@ -29,7 +29,8 @@ export class DatabaseService {
     collectionName: string,
     userId: string,
     constraints: any[],
-    callback: (data: DatabaseDocument[]) => void
+    callback: (data: DatabaseDocument[]) => void,
+    includeNull: boolean = false
   ): () => void {
     // Load cached data first
     this.loadCachedData(collectionName, userId).then((cachedData) => {
@@ -39,7 +40,8 @@ export class DatabaseService {
     });
 
     if (isFirebase() && firebaseDb) {
-      const q = query(collection(firebaseDb, collectionName), where('userId', '==', userId), ...constraints);
+      const userFilter = includeNull ? where('userId', 'in', [null, userId]) : where('userId', '==', userId);
+      const q = query(collection(firebaseDb, collectionName), userFilter, ...constraints);
 
       return onSnapshot(q, async (snapshot) => {
         const data = snapshot.docs.map((doc) => ({
@@ -55,7 +57,13 @@ export class DatabaseService {
         callback(data);
       });
     } else if (isSupabase() && supabase) {
-      let queryBuilder: any = supabase.from(collectionName).select('*').eq('user_id', userId);
+      let queryBuilder: any = supabase.from(collectionName).select('*');
+
+      if (includeNull) {
+        queryBuilder = queryBuilder.or(`user_id.eq.${userId},user_id.is.null`);
+      } else {
+        queryBuilder = queryBuilder.eq('user_id', userId);
+      }
 
       constraints.forEach((constraint: any) => {
         if (constraint.type === 'orderBy') {
@@ -73,7 +81,7 @@ export class DatabaseService {
             event: '*',
             schema: 'public',
             table: collectionName,
-            filter: `user_id=eq.${userId}`,
+            filter: includeNull ? undefined : `user_id=eq.${userId}`,
           },
           () => {
             queryBuilder.then(async ({ data }: any) => {
@@ -239,15 +247,13 @@ export class DatabaseService {
       if (isFirebase() && firebaseDb) {
         await updateDoc(doc(firebaseDb, collectionName, docId), { [field]: increment(value) });
       } else if (isSupabase() && supabase) {
-        const { data: currentDoc } = await supabase.from(collectionName).select(field).eq('id', docId).single();
-        if (currentDoc) {
-          const currentValue = currentDoc[field] || 0;
-          const { error } = await supabase
-            .from(collectionName)
-            .update({ [field]: currentValue + value })
-            .eq('id', docId);
-          if (error) throw error;
-        }
+        const { error } = await supabase.rpc('increment_field', {
+          table_name: collectionName,
+          record_id: docId,
+          field_name: field,
+          increment_value: value,
+        });
+        if (error) throw error;
       }
 
       const existingDoc = await LocalStorageService.getDocument(docId);
@@ -549,22 +555,18 @@ export class DatabaseService {
           const { type, collection: collectionName, documentId, data, field, value } = operation;
 
           if (type === 'create') {
-            await supabase.from(collectionName).insert([data]);
+            const dataWithId = documentId ? { ...data, id: documentId } : data;
+            await supabase.from(collectionName).insert([dataWithId]);
           } else if (type === 'update' && documentId) {
             await supabase.from(collectionName).update(data).eq('id', documentId);
           } else if (type === 'increment' && documentId && field && value !== undefined) {
-            const { data: currentDoc } = await supabase
-              .from(collectionName)
-              .select(field)
-              .eq('id', documentId)
-              .single();
-            if (currentDoc) {
-              const currentValue = currentDoc[field] || 0;
-              await supabase
-                .from(collectionName)
-                .update({ [field]: currentValue + value })
-                .eq('id', documentId);
-            }
+            const { error } = await supabase.rpc('increment_field', {
+              table_name: collectionName,
+              record_id: documentId,
+              field_name: field,
+              increment_value: value,
+            });
+            if (error) throw error;
           } else if (type === 'delete' && documentId) {
             await supabase.from(collectionName).delete().eq('id', documentId);
           }

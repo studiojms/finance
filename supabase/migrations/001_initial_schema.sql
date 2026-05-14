@@ -130,3 +130,28 @@ INSERT INTO categories (name, icon, color, type, user_id) VALUES
   ('Saúde', 'HeartPulse', '#ef4444', 'expense', NULL),
   ('Trabalho', 'Briefcase', '#3b82f6', 'income', NULL),
   ('Investimento', 'TrendingUp', '#06b6d4', 'both', NULL);
+
+-- Create a function for atomic field increment
+-- This prevents race conditions when updating numeric fields concurrently
+CREATE OR REPLACE FUNCTION increment_field(
+  table_name TEXT,
+  record_id UUID,
+  field_name TEXT,
+  increment_value NUMERIC
+)
+RETURNS VOID AS $$
+DECLARE
+  query TEXT;
+BEGIN
+  query := format(
+    'UPDATE %I SET %I = COALESCE(%I, 0) + $1 WHERE id = $2',
+    table_name,
+    field_name,
+    field_name
+  );
+  EXECUTE query USING increment_value, record_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION increment_field TO authenticated;

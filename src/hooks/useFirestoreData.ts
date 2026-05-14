@@ -75,18 +75,24 @@ export function useFirestoreData(userId: string | null): UseFirestoreDataReturn 
       );
     });
 
-    const unsubCategories = DatabaseService.subscribeToCollection('categories', userId, [], (data) => {
-      setCategories(
-        data.map((d) => ({
-          id: d.id,
-          name: d.name,
-          icon: d.icon,
-          color: d.color,
-          type: d.type,
-          userId: isFirebase() ? d.userId : d.user_id,
-        })) as Category[]
-      );
-    });
+    const unsubCategories = DatabaseService.subscribeToCollection(
+      'categories',
+      userId,
+      [],
+      (data) => {
+        setCategories(
+          data.map((d) => ({
+            id: d.id,
+            name: d.name,
+            icon: d.icon,
+            color: d.color,
+            type: d.type,
+            userId: isFirebase() ? d.userId : d.user_id,
+          })) as Category[]
+        );
+      },
+      true
+    );
 
     return () => {
       unsubAccounts();
