@@ -574,13 +574,13 @@ describe('useTransactionCalculations', () => {
     });
 
     it('should filter transactions by search term with time filter "past"', () => {
-      const baseDate = new Date();
-      baseDate.setDate(15); // Use mid-month to avoid boundary issues
+      const today = new Date();
+      today.setHours(12, 0, 0, 0);
 
-      const pastDate = new Date(baseDate);
-      pastDate.setDate(pastDate.getDate() - 3);
-      const futureDate = new Date(baseDate);
-      futureDate.setDate(futureDate.getDate() + 3);
+      const pastDate = new Date(today);
+      pastDate.setDate(pastDate.getDate() - 1);
+      const futureDate = new Date(today);
+      futureDate.setDate(futureDate.getDate() + 1);
 
       const searchTransactions: Transaction[] = [
         {
@@ -610,7 +610,7 @@ describe('useTransactionCalculations', () => {
       const { result } = renderHook(() =>
         useTransactionCalculations({
           ...defaultProps,
-          currentMonth: baseDate,
+          currentMonth: today,
           transactions: searchTransactions,
           searchTerm: 'payment',
           searchTimeFilter: 'past',
@@ -622,13 +622,13 @@ describe('useTransactionCalculations', () => {
     });
 
     it('should filter transactions by search term with time filter "future"', () => {
-      const baseDate = new Date();
-      baseDate.setDate(15); // Use mid-month to avoid boundary issues
+      const today = new Date();
+      today.setHours(12, 0, 0, 0);
 
-      const pastDate = new Date(baseDate);
-      pastDate.setDate(pastDate.getDate() - 3);
-      const futureDate = new Date(baseDate);
-      futureDate.setDate(futureDate.getDate() + 3);
+      const pastDate = new Date(today);
+      pastDate.setDate(pastDate.getDate() - 1);
+      const futureDate = new Date(today);
+      futureDate.setDate(futureDate.getDate() + 1);
 
       const searchTransactions: Transaction[] = [
         {
@@ -658,7 +658,7 @@ describe('useTransactionCalculations', () => {
       const { result } = renderHook(() =>
         useTransactionCalculations({
           ...defaultProps,
-          currentMonth: baseDate,
+          currentMonth: today,
           transactions: searchTransactions,
           searchTerm: 'payment',
           searchTimeFilter: 'future',

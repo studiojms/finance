@@ -19,14 +19,13 @@ import {
   Smartphone,
   DollarSign,
 } from 'lucide-react';
-import { format, addDays, addWeeks, addMonths, addYears } from 'date-fns';
-import { doc, collection, writeBatch, query, where, getDocs, increment } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { format } from 'date-fns';
 import { Account, Transaction, Category, TransactionType } from '../../types';
 import { handleFirestoreError } from '../../services/errorService';
 import { DatabaseService } from '../../services/databaseService';
 import { ConnectionService } from '../../services/connectionService';
 import { LocalStorageService } from '../../services/localStorageService';
+import { saveTransaction } from '../../services/transactionSaveService';
 import { cn } from '../../utils';
 
 const LAST_USED_ACCOUNT_KEY = 'lastUsedAccountId';
@@ -200,6 +199,17 @@ export function TransactionModal({
     }
   }, [editingTransaction, accounts, accountId]);
 
+  useEffect(() => {
+    if (type !== 'transfer' || editingTransaction || accounts.length < 2 || !accountId) return;
+
+    const destinationAccount = accounts.find((account) => account.id !== accountId);
+    if (!destinationAccount) return;
+
+    if (!toAccountId || toAccountId === accountId) {
+      setToAccountId(destinationAccount.id);
+    }
+  }, [type, accountId, accounts, editingTransaction, toAccountId]);
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '');
     setAmount(value || '0');
@@ -238,301 +248,30 @@ export function TransactionModal({
   const handleSave = async () => {
     const numericAmount = parseFloat(amount) / 100;
     if (!description || !accountId || (type === 'transfer' && !toAccountId)) return;
-    if (type === 'transfer' && numericAmount <= 0) return;
-    if (type !== 'transfer' && numericAmount <= 0) return;
+    if (type === 'transfer' && accountId === toAccountId) return;
+    if (numericAmount <= 0) return;
     if (isSaving) return;
-    if (!db) return; // Guard against null db
 
     setIsSaving(true);
     try {
-      const baseTransaction = {
+      await saveTransaction({
         description,
         amount: numericAmount,
-        date: new Date(date + 'T12:00:00').toISOString(),
+        date,
         accountId,
-        categoryId: type === 'transfer' ? 'transfer' : categoryId,
-        toAccountId: type === 'transfer' ? toAccountId : null,
+        categoryId,
+        toAccountId,
         type,
         isConsolidated,
         userId,
-        frequency: type === 'transfer' || installments !== '1' ? frequency : null,
-      };
+        frequency,
+        installments,
+        isInfinite,
+        editMode,
+        editingTransaction,
+        transactions,
+      });
 
-      const batch = writeBatch(db);
-
-      const getNextDate = (currentDate: Date, freq: string, index: number) => {
-        switch (freq) {
-          case 'daily':
-            return addDays(currentDate, index);
-          case 'weekly':
-            return addWeeks(currentDate, index);
-          case 'monthly':
-            return addMonths(currentDate, index);
-          case 'bimonthly':
-            return addMonths(currentDate, index * 2);
-          case 'quarterly':
-            return addMonths(currentDate, index * 3);
-          case 'semiannual':
-            return addMonths(currentDate, index * 6);
-          case 'annual':
-            return addYears(currentDate, index);
-          default:
-            return addMonths(currentDate, index);
-        }
-      };
-
-      const updateBalance = (
-        t: Omit<Transaction, 'id'> | Transaction | typeof baseTransaction,
-        isNew: boolean,
-        oldT?: Transaction
-      ) => {
-        if (!t.isConsolidated && (!oldT || !oldT.isConsolidated)) return;
-
-        if (isNew) {
-          const diff = t.type === 'income' ? t.amount : -t.amount;
-          batch.update(doc(db!, 'accounts', t.accountId), { balance: increment(diff) });
-        } else if (oldT) {
-          if (oldT.isConsolidated) {
-            const diff = oldT.type === 'income' ? -oldT.amount : oldT.amount;
-            batch.update(doc(db!, 'accounts', oldT.accountId), { balance: increment(diff) });
-          }
-          if (t.isConsolidated) {
-            const diff = t.type === 'income' ? t.amount : -t.amount;
-            batch.update(doc(db!, 'accounts', t.accountId), { balance: increment(diff) });
-          }
-        }
-      };
-
-      const createTransferPair = (
-        desc: string,
-        amt: number,
-        dt: string,
-        fromAcct: string,
-        toAcct: string,
-        consolidated: boolean,
-        instId?: string,
-        instNum?: number,
-        totalInst?: number | null,
-        freq?: string | null
-      ) => {
-        const transferId = crypto.randomUUID();
-
-        const expenseRef = doc(collection(db!, 'transactions'));
-        const expenseTransaction = {
-          description: desc,
-          amount: amt,
-          date: dt,
-          accountId: fromAcct,
-          categoryId: 'transfer',
-          type: 'expense' as TransactionType,
-          isConsolidated: consolidated,
-          userId,
-          transferId,
-          installmentId: instId,
-          installmentNumber: instNum,
-          totalInstallments: totalInst,
-          frequency: freq,
-        };
-        batch.set(expenseRef, expenseTransaction);
-        updateBalance(expenseTransaction, true);
-
-        const incomeRef = doc(collection(db!, 'transactions'));
-        const incomeTransaction = {
-          description: desc,
-          amount: amt,
-          date: dt,
-          accountId: toAcct,
-          categoryId: 'transfer',
-          type: 'income' as TransactionType,
-          isConsolidated: consolidated,
-          userId,
-          transferId,
-          installmentId: instId,
-          installmentNumber: instNum,
-          totalInstallments: totalInst,
-          frequency: freq,
-        };
-        batch.set(incomeRef, incomeTransaction);
-        updateBalance(incomeTransaction, true);
-      };
-
-      if (editingTransaction) {
-        if (editingTransaction.transferId) {
-          // Handle transfer edits - update both paired transactions
-          const pairedTransactions = transactions.filter((t) => t.transferId === editingTransaction.transferId);
-
-          if (editMode === 'future' && editingTransaction.installmentId) {
-            // For future edits of installment transfers
-            const q = query(
-              collection(db!, 'transactions'),
-              where('transferId', '==', editingTransaction.transferId),
-              where('userId', '==', userId)
-            );
-            const snap = await getDocs(q);
-            const allPairedDocs = snap.docs.filter(
-              (d) => (d.data().installmentNumber || 0) >= (editingTransaction.installmentNumber || 0)
-            );
-
-            allPairedDocs.forEach((d) => {
-              const dData = d.data() as Transaction;
-              const indexDiff = (dData.installmentNumber || 1) - (editingTransaction.installmentNumber || 1);
-              const newDate = getNextDate(new Date(date), frequency, indexDiff);
-
-              const descriptionWithSuffix =
-                dData.totalInstallments === null
-                  ? `${description} (#${dData.installmentNumber})`
-                  : dData.totalInstallments
-                    ? `${description} (${dData.installmentNumber}/${dData.totalInstallments})`
-                    : description;
-
-              const updatedT = {
-                description: descriptionWithSuffix,
-                amount: numericAmount,
-                date: newDate.toISOString(),
-                accountId: dData.type === 'expense' ? accountId : toAccountId,
-                categoryId: 'transfer',
-                type: dData.type,
-                isConsolidated: dData.isConsolidated,
-                userId,
-                transferId: dData.transferId,
-                installmentId: dData.installmentId,
-                installmentNumber: dData.installmentNumber,
-                totalInstallments: dData.totalInstallments,
-                frequency,
-              };
-              batch.update(d.ref, updatedT);
-              updateBalance(updatedT, false, dData);
-            });
-          } else {
-            // For single transfer edits, update both transactions
-            pairedTransactions.forEach((t) => {
-              const updatedT = {
-                description,
-                amount: numericAmount,
-                date: new Date(date + 'T12:00:00').toISOString(),
-                accountId: t.type === 'expense' ? accountId : toAccountId,
-                categoryId: 'transfer',
-                type: t.type,
-                isConsolidated: t.isConsolidated,
-                userId,
-                transferId: t.transferId,
-                toAccountId: t.type === 'expense' ? toAccountId : accountId,
-                frequency: t.frequency,
-                installmentId: t.installmentId,
-                installmentNumber: t.installmentNumber,
-                totalInstallments: t.totalInstallments,
-              };
-              batch.update(doc(db!, 'transactions', t.id), updatedT);
-              updateBalance(updatedT, false, t);
-            });
-          }
-        } else if (editMode === 'future' && editingTransaction.installmentId) {
-          const q = query(
-            collection(db, 'transactions'),
-            where('installmentId', '==', editingTransaction.installmentId),
-            where('userId', '==', userId)
-          );
-          const snap = await getDocs(q);
-          const futureDocs = snap.docs.filter(
-            (d) => (d.data().installmentNumber || 0) >= (editingTransaction.installmentNumber || 0)
-          );
-
-          futureDocs.forEach((d) => {
-            const dData = d.data() as Transaction;
-            const indexDiff = (dData.installmentNumber || 1) - (editingTransaction.installmentNumber || 1);
-            const newDate = getNextDate(new Date(date), frequency, indexDiff);
-
-            const descriptionWithSuffix =
-              dData.totalInstallments === null
-                ? `${description} (#${dData.installmentNumber})`
-                : dData.totalInstallments
-                  ? `${description} (${dData.installmentNumber}/${dData.totalInstallments})`
-                  : description;
-
-            const updatedT = {
-              ...baseTransaction,
-              description: descriptionWithSuffix,
-              date: newDate.toISOString(),
-              installmentNumber: dData.installmentNumber,
-              totalInstallments: dData.totalInstallments,
-              installmentId: dData.installmentId,
-            };
-            batch.update(d.ref, updatedT);
-            updateBalance(updatedT, false, dData);
-          });
-        } else {
-          batch.update(doc(db, 'transactions', editingTransaction.id), baseTransaction);
-          updateBalance(baseTransaction, false, editingTransaction);
-        }
-      } else {
-        const numInstallments = isInfinite ? 24 : parseInt(installments);
-
-        if (type === 'transfer') {
-          if (numInstallments > 1 || isInfinite) {
-            const installmentId = crypto.randomUUID();
-            for (let i = 0; i < numInstallments; i++) {
-              const installmentDate = getNextDate(new Date(date), frequency, i);
-              const descriptionWithSuffix = isInfinite
-                ? `${description} (#${i + 1})`
-                : `${description} (${i + 1}/${numInstallments})`;
-
-              createTransferPair(
-                descriptionWithSuffix,
-                numericAmount,
-                installmentDate.toISOString(),
-                accountId,
-                toAccountId,
-                i === 0 ? isConsolidated : false,
-                installmentId,
-                i + 1,
-                isInfinite ? null : numInstallments,
-                frequency
-              );
-            }
-          } else {
-            createTransferPair(
-              description,
-              numericAmount,
-              new Date(date + 'T12:00:00').toISOString(),
-              accountId,
-              toAccountId,
-              isConsolidated,
-              undefined,
-              undefined,
-              undefined,
-              null
-            );
-          }
-        } else if (numInstallments > 1 || isInfinite) {
-          const installmentId = crypto.randomUUID();
-          for (let i = 0; i < numInstallments; i++) {
-            const installmentDate = getNextDate(new Date(date), frequency, i);
-            const tRef = doc(collection(db, 'transactions'));
-            const descriptionWithSuffix = isInfinite
-              ? `${description} (#${i + 1})`
-              : `${description} (${i + 1}/${numInstallments})`;
-            const newT = {
-              ...baseTransaction,
-              description: descriptionWithSuffix,
-              date: installmentDate.toISOString(),
-              installmentId,
-              installmentNumber: i + 1,
-              totalInstallments: isInfinite ? null : numInstallments,
-              isConsolidated: i === 0 ? isConsolidated : false,
-            };
-            batch.set(tRef, newT);
-            updateBalance(newT, true);
-          }
-        } else {
-          const tRef = doc(collection(db, 'transactions'));
-          batch.set(tRef, baseTransaction);
-          updateBalance(baseTransaction, true);
-        }
-      }
-
-      await batch.commit();
-
-      // Save the last used account for new transactions
       if (!editingTransaction && accountId) {
         try {
           await LocalStorageService.setMetadata(LAST_USED_ACCOUNT_KEY, accountId);
@@ -541,17 +280,13 @@ export function TransactionModal({
         }
       }
 
-      // If offline, ensure the operation is also queued in our custom offline system
-      // as a backup to Firebase's built-in offline persistence
       if (!ConnectionService.isOnline()) {
         console.log('Transaction saved offline - will sync when connection is restored');
       }
     } catch (err) {
-      // If the error is due to being offline, close the modal anyway
-      // Firebase's offline persistence will queue the operations
       if (!ConnectionService.isOnline()) {
         console.log('Transaction queued offline via Firebase persistence');
-        return; // Exit without showing error
+        return;
       }
       handleFirestoreError(err, editingTransaction ? 'update' : 'create', 'transactions');
     } finally {
