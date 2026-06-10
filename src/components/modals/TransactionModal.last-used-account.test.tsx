@@ -4,31 +4,13 @@ import { TransactionModal } from './TransactionModal';
 import { Account, Category, Transaction } from '../../types';
 import { LocalStorageService } from '../../services/localStorageService';
 
-vi.mock('firebase/firestore', () => ({
-  addDoc: vi.fn(),
-  collection: vi.fn(),
-  doc: vi.fn(),
-  updateDoc: vi.fn(),
-  writeBatch: vi.fn(() => ({
-    update: vi.fn(),
-    delete: vi.fn(),
-    commit: vi.fn().mockResolvedValue(undefined),
-    set: vi.fn(),
-  })),
-  query: vi.fn(),
-  where: vi.fn(),
-  getDocs: vi.fn(() => Promise.resolve({ docs: [] })),
-  increment: vi.fn((value) => value),
+vi.mock('../../services/transactionSaveService', () => ({
+  saveTransaction: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('../../firebase', () => ({
-  db: {},
-  auth: {
-    currentUser: {
-      uid: 'test-user-123',
-      email: 'test@example.com',
-      emailVerified: true,
-    },
+vi.mock('../../services/connectionService', () => ({
+  ConnectionService: {
+    isOnline: vi.fn(() => true),
   },
 }));
 
