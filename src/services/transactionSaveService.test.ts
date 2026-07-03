@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { format, parseISO } from 'date-fns';
 import { saveTransaction } from './transactionSaveService';
 import { DatabaseService } from './databaseService';
 import { Transaction } from '../types';
@@ -17,6 +18,139 @@ vi.mock('../config', () => ({
 describe('transactionSaveService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('creates monthly installments on the same day of each month', async () => {
+    await saveTransaction({
+      description: 'Payment',
+      amount: 100,
+      date: '2026-06-30',
+      accountId: 'account-1',
+      categoryId: 'category-1',
+      toAccountId: '',
+      type: 'expense',
+      isConsolidated: false,
+      userId: 'user-1',
+      frequency: 'monthly',
+      installments: '4',
+      isInfinite: false,
+      editMode: 'only',
+      editingTransaction: null,
+      transactions: [],
+    });
+
+    const operations = vi.mocked(DatabaseService.executeBatchWrite).mock.calls[0][0];
+    const createOperations = operations.filter((operation) => operation.type === 'create');
+    const dates = createOperations.map((operation) =>
+      format(parseISO(operation.data?.date as string), 'yyyy-MM-dd')
+    );
+
+    expect(dates).toEqual(['2026-06-30', '2026-07-30', '2026-08-30', '2026-09-30']);
+  });
+
+  it('clamps monthly installments to the last day of shorter months', async () => {
+    await saveTransaction({
+      description: 'Payment',
+      amount: 100,
+      date: '2026-01-31',
+      accountId: 'account-1',
+      categoryId: 'category-1',
+      toAccountId: '',
+      type: 'expense',
+      isConsolidated: false,
+      userId: 'user-1',
+      frequency: 'monthly',
+      installments: '3',
+      isInfinite: false,
+      editMode: 'only',
+      editingTransaction: null,
+      transactions: [],
+    });
+
+    const operations = vi.mocked(DatabaseService.executeBatchWrite).mock.calls[0][0];
+    const createOperations = operations.filter((operation) => operation.type === 'create');
+    const dates = createOperations.map((operation) =>
+      format(parseISO(operation.data?.date as string), 'yyyy-MM-dd')
+    );
+
+    expect(dates).toEqual(['2026-01-31', '2026-02-28', '2026-03-31']);
+  });
+
+  it('updates future installments using monthly cadence', async () => {
+    const installmentId = 'installment-1';
+    const transactions: Transaction[] = [
+      {
+        id: 'trans-1',
+        description: 'Payment (1/3)',
+        amount: 100,
+        date: '2026-06-29T03:00:00.000Z',
+        accountId: 'account-1',
+        categoryId: 'category-1',
+        type: 'expense',
+        isConsolidated: false,
+        userId: 'user-1',
+        installmentId,
+        installmentNumber: 1,
+        totalInstallments: 3,
+        frequency: 'monthly',
+      },
+      {
+        id: 'trans-2',
+        description: 'Payment (2/3)',
+        amount: 100,
+        date: '2026-07-29T03:00:00.000Z',
+        accountId: 'account-1',
+        categoryId: 'category-1',
+        type: 'expense',
+        isConsolidated: false,
+        userId: 'user-1',
+        installmentId,
+        installmentNumber: 2,
+        totalInstallments: 3,
+        frequency: 'monthly',
+      },
+      {
+        id: 'trans-3',
+        description: 'Payment (3/3)',
+        amount: 100,
+        date: '2026-08-29T03:00:00.000Z',
+        accountId: 'account-1',
+        categoryId: 'category-1',
+        type: 'expense',
+        isConsolidated: false,
+        userId: 'user-1',
+        installmentId,
+        installmentNumber: 3,
+        totalInstallments: 3,
+        frequency: 'monthly',
+      },
+    ];
+
+    await saveTransaction({
+      description: 'Payment',
+      amount: 100,
+      date: '2026-06-30',
+      accountId: 'account-1',
+      categoryId: 'category-1',
+      toAccountId: '',
+      type: 'expense',
+      isConsolidated: false,
+      userId: 'user-1',
+      frequency: 'monthly',
+      installments: '3',
+      isInfinite: false,
+      editMode: 'future',
+      editingTransaction: transactions[0],
+      transactions,
+    });
+
+    const operations = vi.mocked(DatabaseService.executeBatchWrite).mock.calls[0][0];
+    const updateOperations = operations.filter((operation) => operation.type === 'update');
+    const dates = updateOperations.map((operation) =>
+      format(parseISO(operation.data?.date as string), 'yyyy-MM-dd')
+    );
+
+    expect(dates).toEqual(['2026-06-30', '2026-07-30', '2026-08-30']);
   });
 
   it('creates paired transfer transactions with balance updates', async () => {

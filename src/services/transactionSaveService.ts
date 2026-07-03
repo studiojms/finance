@@ -27,7 +27,17 @@ export interface SaveTransactionParams {
   transactions: Transaction[];
 }
 
-function getNextDate(currentDate: Date, freq: string, index: number) {
+function parseLocalDate(dateStr: string): Date {
+  const dateOnly = dateStr.split('T')[0];
+  return new Date(dateOnly + 'T12:00:00');
+}
+
+function toDateIso(date: Date): string {
+  return date.toISOString();
+}
+
+function getNextDate(dateStr: string, freq: string, index: number): Date {
+  const currentDate = parseLocalDate(dateStr);
   switch (freq) {
     case 'daily':
       return addDays(currentDate, index);
@@ -89,7 +99,7 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
   const baseTransaction: TransactionWriteData = {
     description,
     amount: numericAmount,
-    date: new Date(date + 'T12:00:00').toISOString(),
+    date: toDateIso(parseLocalDate(date)),
     accountId,
     categoryId: type === 'transfer' ? TRANSFER_CATEGORY_ID : categoryId,
     toAccountId: type === 'transfer' ? toAccountId : null,
@@ -198,7 +208,7 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
 
         futurePairedTransactions.forEach((pairedTransaction) => {
           const indexDiff = (pairedTransaction.installmentNumber || 1) - (editingTransaction.installmentNumber || 1);
-          const newDate = getNextDate(new Date(date), frequency, indexDiff);
+          const newDate = getNextDate(date, frequency, indexDiff);
 
           const descriptionWithSuffix =
             pairedTransaction.totalInstallments === null
@@ -211,7 +221,7 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
           const updatedTransaction: TransactionWriteData = {
             description: descriptionWithSuffix,
             amount: numericAmount,
-            date: newDate.toISOString(),
+            date: toDateIso(newDate),
             accountId: pairedTransaction.type === 'expense' ? accountId : toAccountId,
             categoryId: TRANSFER_CATEGORY_ID,
             type: pairedTransaction.type,
@@ -238,7 +248,7 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
           const updatedTransaction: TransactionWriteData = {
             description,
             amount: numericAmount,
-            date: new Date(date + 'T12:00:00').toISOString(),
+            date: toDateIso(parseLocalDate(date)),
             accountId: pairedTransaction.type === 'expense' ? accountId : toAccountId,
             categoryId: TRANSFER_CATEGORY_ID,
             type: pairedTransaction.type,
@@ -270,7 +280,7 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
 
       futureTransactions.forEach((futureTransaction) => {
         const indexDiff = (futureTransaction.installmentNumber || 1) - (editingTransaction.installmentNumber || 1);
-        const newDate = getNextDate(new Date(date), frequency, indexDiff);
+        const newDate = getNextDate(date, frequency, indexDiff);
 
         const descriptionWithSuffix =
           futureTransaction.totalInstallments === null
@@ -283,7 +293,7 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
         const updatedTransaction: TransactionWriteData = {
           ...baseTransaction,
           description: descriptionWithSuffix,
-          date: newDate.toISOString(),
+          date: toDateIso(newDate),
           installmentNumber: futureTransaction.installmentNumber,
           totalInstallments: futureTransaction.totalInstallments,
           installmentId: futureTransaction.installmentId,
@@ -315,7 +325,7 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
       if (numInstallments > 1 || isInfinite) {
         const installmentId = crypto.randomUUID();
         for (let i = 0; i < numInstallments; i++) {
-          const installmentDate = getNextDate(new Date(date), frequency, i);
+          const installmentDate = getNextDate(date, frequency, i);
           const descriptionWithSuffix = isInfinite
             ? `${description} (#${i + 1})`
             : `${description} (${i + 1}/${numInstallments})`;
@@ -323,7 +333,7 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
           createTransferPair(
             descriptionWithSuffix,
             numericAmount,
-            installmentDate.toISOString(),
+            toDateIso(installmentDate),
             accountId,
             toAccountId,
             i === 0 ? isConsolidated : false,
@@ -337,7 +347,7 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
         createTransferPair(
           description,
           numericAmount,
-          new Date(date + 'T12:00:00').toISOString(),
+          toDateIso(parseLocalDate(date)),
           accountId,
           toAccountId,
           isConsolidated,
@@ -350,14 +360,14 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
     } else if (numInstallments > 1 || isInfinite) {
       const installmentId = crypto.randomUUID();
       for (let i = 0; i < numInstallments; i++) {
-        const installmentDate = getNextDate(new Date(date), frequency, i);
+        const installmentDate = getNextDate(date, frequency, i);
         const descriptionWithSuffix = isInfinite
           ? `${description} (#${i + 1})`
           : `${description} (${i + 1}/${numInstallments})`;
         const newTransaction: TransactionWriteData = {
           ...baseTransaction,
           description: descriptionWithSuffix,
-          date: installmentDate.toISOString(),
+          date: toDateIso(installmentDate),
           installmentId,
           installmentNumber: i + 1,
           totalInstallments: isInfinite ? null : numInstallments,
